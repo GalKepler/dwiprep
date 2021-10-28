@@ -1,5 +1,5 @@
 =======
-DWIPrep
+*DWIPrep*: A Robust Preprocessing Pipeline for dMRI Data
 =======
 
 
