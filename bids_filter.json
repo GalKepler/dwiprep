@@ -1,0 +1,12 @@
+{
+    "t2w": {
+        "datatype": "anat",
+        "suffix": "T2w",
+        "ceagent": "corrected"
+    },
+    "t1w": {
+        "datatype": "anat",
+        "suffix": "T1w",
+        "ceagent": "corrected"
+    }
+}
