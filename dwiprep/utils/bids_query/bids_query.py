@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 from bids import BIDSLayout
-from typing import Union
+from typing import Union, Tuple
 
 DEFAULT_WORK_DIR_NAME = "work"
 
@@ -14,7 +14,7 @@ def collect_data(
     t1w_identifier: dict,
     t2w_identifier: dict,
     bids_validate: bool = True,
-):
+) -> Tuple[dict, BIDSLayout, dict]:
     """
     Collects processing-relevant files from a BIDS dataset
 
@@ -29,8 +29,12 @@ def collect_data(
 
     Returns
     -------
-    [type]
-        [description]
+    dict
+        Paths to subject's processing-relevant files with corresponding keys.
+    BIDSLayout
+        *bids_dir*'s corresponding *pybids*'s BIDSLayout instance
+    dict
+        Both automatic (mandatory) and user-defined definition of processining-relevant BIDS entities.
     """
     if isinstance(bids_dir, BIDSLayout):
         layout = bids_dir

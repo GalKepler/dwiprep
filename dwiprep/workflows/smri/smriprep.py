@@ -72,10 +72,18 @@ class SmriPrep(object):
         self.destination = destination
         self.participant_label = participant_label
         self.queries = validate_queries(queries)
-        self.work_dir = work_dir
+        self.work_dir = self.validate_working_directory(
+            work_dir
+            if work_dir is not None
+            else Path(destination).parent / "work"
+        )
         self.image_path = self.build_image_location(image_path)
         self.run_kwargs = self.arange_kwargs(run_kwargs)
         self.locate_freesurfer_license()
+
+    def validate_working_directory(self, work_dir: Path):
+        work_dir.mkdir(exist_ok=True)
+        return work_dir
 
     def build_image_location(self, image_path: str):
         if image_path is None:
@@ -92,10 +100,7 @@ class SmriPrep(object):
         """
         Writes user and automatically defined BIDS filters to a json.
         """
-        if self.work_dir is not None:
-            bids_filter_path = Path(self.work_dir) / "bids_filter.json"
-        else:
-            bids_filter_path = Path("bids_filter.json").absolute()
+        bids_filter_path = self.work_dir / "bids_filter.json"
         with open(str(bids_filter_path), "w") as fp:
             json.dump(self.queries, fp, indent=4)
             fp.close()
