@@ -3,39 +3,39 @@ Definition of the data collection and validation functions used by the DWIprep
 preprocessing workflow.
 """
 from pathlib import Path
-from typing import List, Union, Tuple
+from typing import Union, Tuple
 
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile
 
-#: Queries for BIDSLayout
-DWI_QUERY = {"datatype": "dwi", "suffix": "dwi"}
-FMAP_QUERY: dict = {"datatype": "fmap"}
-T1W_QUERY = {"datatype": "anat", "suffix": "T1w"}
-T2W_QUERY = {"datatype": "anat", "suffix": "T2w"}
-
-#: Recognized file extensions.
-FILE_EXTENSIONS: List[str] = ["nii", "nii.gz"]
-
-#: File types and corresponding suffixes
-FILE_TYPES_BY_EXTENSIONS = {
-    "bval": ["bval"],
-    "bvec": ["bvec"],
-    "json": ["json"],
-    "nifti": ["nii", "nii.gz"],
-}
-
-
-ENTITY_PATTERN: str = "{key}-{value}"
+from dwiprep.utils.bids_query.utils import (
+    DWI_QUERY,
+    FMAP_QUERY,
+    T1W_QUERY,
+    T2W_QUERY,
+    FILE_TYPES_BY_EXTENSIONS,
+    FILE_EXTENSIONS,
+    ENTITY_PATTERN,
+)
 
 
 class BidsQuery:
-    def __init__(self) -> None:
-        """
-        Initiates a BidsQuery instance.
-        """
+    #: Queries for BIDSLayout
+    DWI_QUERY = DWI_QUERY
+    FMAP_QUERY = FMAP_QUERY
+    T1W_QUERY = T1W_QUERY
+    T2W_QUERY = T2W_QUERY
 
-    def collect_data(
+    #: Recognized file extensions.
+    FILE_EXTENSIONS = FILE_EXTENSIONS
+
+    #: File types and corresponding suffixes
+    FILE_TYPES_BY_EXTENSIONS = FILE_TYPES_BY_EXTENSIONS
+
+    #: BIDS-compatible entity pattern
+    ENTITY_PATTERN = ENTITY_PATTERN
+
+    def __init__(
         self,
         bids_dir: Union[BIDSLayout, Path, str],
         participant_label: str,
@@ -44,10 +44,11 @@ class BidsQuery:
         t1w_identifier: dict,
         t2w_identifier: dict,
         bids_validate: bool = True,
-    ) -> Tuple[dict, BIDSLayout, dict]:
+    ) -> None:
         """
-        Collects processing-relevant files from a BIDS dataset.
-
+        bids_validate : bool, optional
+            Whether to validate *bids_dir*`s compatibility with the BIDS format,
+            by default True
         Parameters
         ----------
         bids_dir : Union[BIDSLayout, Path, str]
@@ -55,9 +56,80 @@ class BidsQuery:
             BIDS-compatible dataset
         participant_label : str
             String representing a subject existing within *bids_dir*
+        dwi_identifier : dict
+            dwi data type identifiers (by BIDS entities) dictionary
+        fmap_identifier : dict
+            fmap data type (by BIDS entities) dictionary
+        t1w_identifier : dict
+            t1w data type (by BIDS entities) dictionary
+        t2w_identifier : dict
+            t1w data type (by BIDS entities) dictionary
         bids_validate : bool, optional
             Whether to validate *bids_dir*`s compatibility with the BIDS format,
             by default True
+        """
+        self.bids_dir = bids_dir
+        self.participant_label = participant_label
+        self.queries = self.set_queries(
+            dwi_identifier, fmap_identifier, t1w_identifier, t2w_identifier
+        )
+        self.bids_validate = bids_validate
+
+    def set_queries(
+        self,
+        dwi_identifier: dict,
+        fmap_identifier: dict,
+        t1w_identifier: dict,
+        t2w_identifier: dict,
+    ) -> dict:
+        """
+        Combines both user-specified and basic identifications
+        of different data types into a single dictionary.
+
+        Parameters
+        ----------
+        dwi_identifier : dict
+            dwi data type identifiers (by BIDS entities) dictionary
+        fmap_identifier : dict
+            fmap data type (by BIDS entities) dictionary
+        t1w_identifier : dict
+            t1w data type (by BIDS entities) dictionary
+        t2w_identifier : dict
+            t1w data type (by BIDS entities) dictionary
+
+        Returns
+        -------
+        dict
+            All data types and their corresponding identifiers
+        """
+        queries = {
+            "dwi": {**self.DWI_QUERY, **dwi_identifier},
+            "fmap": {**self.FMAP_QUERY, **fmap_identifier},
+            "t1w": {**self.T1W_QUERY, **t1w_identifier},
+            "t2w": {**self.T2W_QUERY, **t2w_identifier},
+        }
+        return queries
+
+    def get_layout(self) -> BIDSLayout:
+        """
+        Returns a BIDSLayout instance describing *self.bids_dir*
+
+        Returns
+        -------
+        BIDSLayout
+            A BIDSLayout instance describing *self.bids_dir*
+        """
+        if isinstance(self.bids_dir, BIDSLayout):
+            layout = self.bids_dir
+        else:
+            layout = BIDSLayout(str(self.bids_dir), self.bids_validate)
+        return layout
+
+    def collect_data(
+        self,
+    ) -> Tuple[dict, BIDSLayout, dict]:
+        """
+        Collects processing-relevant files from a BIDS dataset.
 
         Returns
         -------
@@ -65,30 +137,20 @@ class BidsQuery:
             Required preprocessing data
 
         """
-        if isinstance(bids_dir, BIDSLayout):
-            layout = bids_dir
-        else:
-            layout = BIDSLayout(str(bids_dir), bids_validate)
-        queries = {
-            "dwi": {**DWI_QUERY, **dwi_identifier},
-            "fmap": {**FMAP_QUERY, **fmap_identifier},
-            "t1w": {**T1W_QUERY, **t1w_identifier},
-            "t2w": {**T2W_QUERY, **t2w_identifier},
-        }
 
         subj_data = {
             dtype: sorted(
-                layout.get(
+                self.layout.get(
                     return_type="file",
-                    subject=participant_label,
-                    extension=FILE_EXTENSIONS,
+                    subject=self.participant_label,
+                    extension=self.FILE_EXTENSIONS,
                     **query,
                 )
             )
-            for dtype, query in queries.items()
+            for dtype, query in self.queries.items()
         }
 
-        return subj_data, layout, queries
+        return subj_data
 
     def validate_file(self, rules: dict, file_name: dict):
         """
@@ -104,13 +166,11 @@ class BidsQuery:
         """
         valid = []
         for key, value in rules.items():
-            pattern = ENTITY_PATTERN.format(key=key, value=value)
+            pattern = self.ENTITY_PATTERN.format(key=key, value=value)
             valid.append(pattern in file_name)
         return all(valid)
 
-    def get_associated(
-        self, layout: BIDSLayout, file_name: str
-    ) -> list[BIDSFile]:
+    def get_associated(self, file_name: str) -> list[BIDSFile]:
         """Get all files assocated to *file_name*.
 
         Parameters
@@ -125,7 +185,7 @@ class BidsQuery:
         list[BIDSFile]
             List of all BIDSFile instances that are associated with *file_name*
         """
-        bids_file = layout.get_file(file_name)
+        bids_file = self.layout.get_file(file_name)
         assoc_json = [
             j
             for j in bids_file.get_associations()
@@ -137,15 +197,51 @@ class BidsQuery:
             else None
         )
 
-    def parse_associated_files(associated_files: list):
+    def parse_associated_files(self, associated_files: list) -> dict:
+        """
+        Parse all associated files (to a BIDS entity) by their corresponding extensions
+
+        Parameters
+        ----------
+        associated_files : list
+            A list of *BIDSFile* instances associated with the same BIDS entity
+
+        Returns
+        -------
+        dict
+            A dictionary with keys of extensions/file types and their correspodning files.
+        """
         parsed_files = {}
         for file_name in associated_files:
             extension = file_name.get_entities().get("extension").strip(".")
             file_type = [
                 key
-                for key, value in FILE_TYPES_BY_EXTENSIONS.items()
+                for key, value in self.FILE_TYPES_BY_EXTENSIONS.items()
                 if extension in value
             ]
             if file_type:
                 parsed_files[file_type[0]] = file_name.path
         return parsed_files
+
+    @property
+    def subj_data(self) -> dict:
+        """
+        Return subject's raw nifti files by their corresponding data types
+        Returns
+        -------
+        dict
+            subject's raw nifti files by their corresponding data types
+        """
+        return self.collect_data()
+
+    @property
+    def layout(self) -> BIDSLayout:
+        """
+        Returns a BIDSLayout instance describing *self.bids_dir*
+
+        Returns
+        -------
+        BIDSLayout
+            a BIDSLayout instance describing *self.bids_dir*
+        """
+        return self.get_layout()
