@@ -115,7 +115,7 @@ class DmriPrep:
         Returns
         -------
         list
-            A list of available session for *self.participant_label*
+            A list of available session for *self.participant_label*.
         """
         return (
             self.layout.get_sessions()
@@ -157,7 +157,7 @@ class DmriPrep:
         for session in self.sessions:
             data_by_sessions[session] = self.get_session_data(session)
         return data_by_sessions
-
+    
     @property
     def sessions(self) -> list:
         """
