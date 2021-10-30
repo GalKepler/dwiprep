@@ -1,9 +1,20 @@
-import os
+"""
+Definition of the data collection and validation functions used by the DWIprep
+preprocessing workflow.
+"""
 from pathlib import Path
-from bids import BIDSLayout
-from typing import Union
+from typing import List, Union
 
-DEFAULT_WORK_DIR_NAME = "work"
+from bids import BIDSLayout
+
+DWI_QUERY = {"datatype": "dwi", "suffix": "dwi"}
+FMAP_QUERY: dict = {"datatype": "fmap"}
+T1W_QUERY = {"datatype": "anat", "suffix": "T1w"}
+T2W_QUERY = {"datatype": "anat", "suffix": "T2w"}
+
+FILE_EXTENSIONS: List[str] = ["nii", "nii.gz"]
+
+ENTITY_PATTERN: str = "{key}-{value}"
 
 
 def collect_data(
@@ -16,31 +27,33 @@ def collect_data(
     bids_validate: bool = True,
 ):
     """
-    Collects processing-relevant files from a BIDS dataset
+    Collects processing-relevant files from a BIDS dataset.
 
     Parameters
     ----------
     bids_dir : Union[BIDSLayout, Path, str]
-        Either BIDSLayout or path-like object representing an existing BIDS-compatible dataset.
+        Either BIDSLayout or path-like object representing an existing
+        BIDS-compatible dataset
     participant_label : str
-        String representing a subject existing within *bids_dir*.
+        String representing a subject existing within *bids_dir*
     bids_validate : bool, optional
-        Whether to validate *bids_dir*`s compatibility with the BIDS format, by default True
+        Whether to validate *bids_dir*`s compatibility with the BIDS format,
+        by default True
 
     Returns
     -------
-    [type]
-        [description]
+    tuple
+        Required preprocessing data
     """
     if isinstance(bids_dir, BIDSLayout):
         layout = bids_dir
     else:
         layout = BIDSLayout(str(bids_dir), bids_validate)
     queries = {
-        "fmap": {"datatype": "fmap", **fmap_identifier},
-        "dwi": {"datatype": "dwi", "suffix": "dwi", **dwi_identifier},
-        "t2w": {"datatype": "anat", "suffix": "T2w", **t2w_identifier},
-        "t1w": {"datatype": "anat", "suffix": "T1w", **t1w_identifier},
+        "dwi": {**DWI_QUERY, **dwi_identifier},
+        "fmap": {**FMAP_QUERY, **fmap_identifier},
+        "t1w": {**T1W_QUERY, **t1w_identifier},
+        "t2w": {**T2W_QUERY, **t2w_identifier},
     }
 
     subj_data = {
@@ -48,7 +61,7 @@ def collect_data(
             layout.get(
                 return_type="file",
                 subject=participant_label,
-                extension=["nii", "nii.gz"],
+                extension=FILE_EXTENSIONS,
                 **query,
             )
         )
@@ -58,20 +71,20 @@ def collect_data(
     return subj_data, layout, queries
 
 
-def validate_file(rules: dict, fname: dict):
+def validate_file(rules: dict, file_name: dict):
     """
-    Validates files by BIDS-compatible identifiers
+    Validates files by BIDS-compatible identifiers.
+
     Parameters
     ----------
     rules : dict
-        Dictionary with keys of BIDS-recognized key and their accepted values.
-    fname : str
-        File to validate.
+        Dictionary with keys of BIDS-recognized key and their accepted
+        values
+    file_name : str
+        File to validate
     """
     valid = []
     for key, value in rules.items():
-        if f"{key}-{value}" in fname:
-            valid.append(True)
-        else:
-            valid.append(False)
+        pattern = ENTITY_PATTERN.format(key=key, value=value)
+        valid.append(pattern in file_name)
     return all(valid)
