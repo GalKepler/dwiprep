@@ -1,6 +1,5 @@
 import json
 import os
-import re
 from typing import Union, Any, Iterable
 from pathlib import Path
 from bids import BIDSLayout
@@ -58,6 +57,7 @@ class SmriPrep(object):
         work_dir: Path = None,
     ):
         """
+        Initiates an SmriPreo instance.
 
         Parameters
         ----------
