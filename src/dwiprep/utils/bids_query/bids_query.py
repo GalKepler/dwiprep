@@ -8,7 +8,7 @@ from typing import Union, Tuple
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile
 
-from dwiprep.utils.bids_query.utils import (
+from src.dwiprep.utils.bids_query.utils import (
     DWI_QUERY,
     FMAP_QUERY,
     T1W_QUERY,
