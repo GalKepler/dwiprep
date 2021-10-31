@@ -1,10 +1,20 @@
 import warnings
 from typing import Union
 from pathlib import Path
-from bids import BIDSLayout
+from nipype.interfaces import mrtrix3 as mrt
+from traits.trait_types import Instance
+from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.utils.utils import (
     MANDATORY_ENTITIES,
     RECOMMENDED_ENTITIES,
+    RELEVANT_DATA_TYPES,
+    WORK_DIR_NAME,
+    OUTPUT_PATTERNS,
+    OUTPUT_ENTITIES,
+)
+from dwiprep.interfaces.mrconvert import (
+    mrconvert_map_types_to_kwargs,
+    mrconvert,
 )
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 
@@ -19,10 +29,21 @@ class DmriPrep:
     #: BIDS entities that are recommended for processing
     RECOMMENDED_ENTITIES = RECOMMENDED_ENTITIES
 
+    #: Data types that are relevant for preprocessing of dMRI data
+    RELEVANT_DATA_TYPES = RELEVANT_DATA_TYPES
+
+    #: Name of working directory where intermidete files should be stored
+    WORK_DIR_NAME = WORK_DIR_NAME
+
+    #: Pattern of output files
+    OUTPUT_PATTERNS = OUTPUT_PATTERNS
+
+    #: Output descriptions (desc-*) BIDS label
+    OUTPUT_ENTITIES = OUTPUT_ENTITIES
+
     def __init__(
         self,
-        subj_data: dict,
-        layout: BIDSLayout,
+        bids_query: BidsQuery,
         destination: Union[Path, str],
         participant_label: str = None,
         run_kwargs: dict = None,
@@ -35,8 +56,8 @@ class DmriPrep:
         ----------
         subj_data : dict
             Paths to subject's processing-relevant files with corresponding keys.
-        layout: BIDSLayout
-            Pybids' BIDSLayout instance for querying a BIDS-compatible dataset.
+        bids_query: BidsQuery
+            BidsQuery instance for querying a BIDS-compatible dataset.
         destination : Union[Path, str]
             Path to dmriprep's outputs
         participant_label : str, optional
@@ -46,8 +67,9 @@ class DmriPrep:
         work_dir : Path, optional
            Path where intermediate results should be stored , by default None
         """
-        self.raw_data = self.validate_subject_data(subj_data)
-        self.layout = layout
+        self.raw_data = self.validate_subject_data(bids_query.subj_data.copy())
+        self.bids_query = bids_query
+        self.layout = bids_query.layout
         self.destination = Path(destination)
         self.participant_label = participant_label
         self.work_dir = self.validate_working_directory(work_dir)
@@ -100,11 +122,11 @@ class DmriPrep:
             Path where intermediate results should be stored
         """
         work_dir = (
-            work_dir
+            work_dir / self.WORK_DIR_NAME
             if work_dir is not None
-            else self.destination.parent / "work"
+            else self.destination.parent / "work" / self.WORK_DIR_NAME
         )
-        work_dir.mkdir(exist_ok=True)
+        work_dir.mkdir(exist_ok=True, parents=True)
         return work_dir
 
     def get_sessions(self) -> list:
@@ -147,17 +169,134 @@ class DmriPrep:
 
     def arrange_subject_data_by_sessions(self) -> dict:
         """
+        Rearrange subject's data so that data types and their corresponding files will be associated with specific sessions.
 
         Returns
         -------
         dict
-            [description]
+            Dictionary with keys of sessions and their corresponding data.
         """
         data_by_sessions = {}
-        for session in self.sessions:
-            data_by_sessions[session] = self.get_session_data(session)
+        if self.sessions:
+            for session in self.sessions:
+                data_by_sessions[session] = self.get_session_data(session)
+        else:
+            data_by_sessions["ses-1"] = data_by_sessions
         return data_by_sessions
-    
+
+    def build_output_name(
+        self,
+        key: str,
+        in_file: Union[Path, str] = None,
+        base_entities: dict = None,
+    ) -> str:
+        """
+        Build BIDS-compatible output file name.
+
+        Parameters
+        ----------
+        key : str
+            Key corresponding to an entities dictionary in *self.OUTPUT_ENTITIES*
+        in_file : Union[Path,str], optional
+            Path-like object representing a file, by default None
+        base_entities : dict, optional
+            Basic entities for path construction. Only relevant if *in_file* is missing., by default None
+
+        Returns
+        -------
+        str
+            A BIDS-compatible name for *in_file*'s derivative.
+        """
+        entities = (
+            self.layout.parse_file_entities(in_file)
+            if in_file
+            else base_entities
+        )
+
+        for key, value in self.OUTPUT_ENTITIES.get(key).items():
+            entities[key] = value
+        return (
+            self.layout.build_path(
+                entities,
+                self.OUTPUT_PATTERNS,
+                validate=False,
+                absolute_paths=False,
+            ),
+            entities,
+        )
+
+    def convert_file_to_mif(
+        self, in_file: Union[Path, str], session: str = None
+    ) -> mrt.MRConvert:
+        """
+        Build an initiated *MRConvert* instance with relevant kwargs.
+
+        Parameters
+        ----------
+        in_file : Union[Path,str]
+            NIfTI file to be converted to mif format
+        session : str, optional
+            Session ID (needed for path construction), by default None
+
+        Returns
+        -------
+        mrt.MRConvert
+            An initiated MRConvert instance.
+        """
+        associated_files = self.bids_query.get_associated(in_file)
+        out_fname, entities = self.build_output_name("raw_mif", in_file)
+        output = self.destination / f"{out_fname.split('.')[0]}.mif"
+        if output.exists():
+            return output
+        output.parent.mkdir(exist_ok=True, parents=True)
+        parsed_files = self.bids_query.parse_associated_files(associated_files)
+        kwargs = mrconvert_map_types_to_kwargs(parsed_files)
+        kwargs["out_file"] = output
+        mrconvert(kwargs).run()
+        return output
+
+    def convert_session_to_mif(self, session_data: dict) -> dict:
+        """
+        Converts an entire session to .mif format for better compatability with *mrtrix3*`s tools.
+
+        Parameters
+        ----------
+        session_data : dict
+            Dictionary of session-relevant files.
+
+        Returns
+        -------
+        dict
+            Dictionary of locations for converted files in .mif format.
+        """
+        mif_dict = {}
+        for key, value in session_data.items():
+            if isinstance(value, list):
+                mif_dict[key] = [
+                    self.convert_file_to_mif(val, key) for val in value
+                ]
+            else:
+                mif_dict[key] = self.convert_file_to_mif(value, key)
+
+        return mif_dict
+
+    def initiate_working_directory(self) -> dict:
+        """
+        Initiates a working directory containing all available and useful data for processing.
+
+        Returns
+        -------
+        dict
+            Path to subject's relevant data by data types.
+        """
+        mif_dict = {}
+        for (
+            session,
+            session_data,
+        ) in self.arrange_subject_data_by_sessions().items():
+            mif_dict[session] = self.convert_session_to_mif(session_data)
+        return mif_dict
+
     @property
     def sessions(self) -> list:
         """
@@ -168,4 +307,17 @@ class DmriPrep:
         list
             A list of available session for *self.participant_label*
         """
-        return self.get_sessions()
+        sessions = self.get_sessions()
+        return sessions
+
+    @property
+    def data_by_sessions(self) -> dict:
+        """
+        Return subject's data by corresponding session
+
+        Returns
+        -------
+        dict
+            Dictionary with keys of subject's available sessions.
+        """
+        return self.arrange_subject_data_by_sessions()

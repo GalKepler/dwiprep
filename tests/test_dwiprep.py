@@ -6,8 +6,8 @@ import pytest
 
 from click.testing import CliRunner
 
-from dwiprep import dwiprep
-from dwiprep import cli
+from src.dwiprep import dwiprep
+from src.dwiprep import cli
 
 
 @pytest.fixture
