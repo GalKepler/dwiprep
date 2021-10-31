@@ -5,7 +5,7 @@ from nipype.interfaces.io import DataSink
 from nipype import Node
 
 import nipype.pipeline.engine as pe
-from nipype.interfaces import mrtrix3 as mrt
+from nipype.interfaces import base, mrtrix3 as mrt
 from nipype.pipeline.engine import workflows
 from nipype.pipeline.engine.workflows import Workflow
 
@@ -201,7 +201,10 @@ class DmriPrep:
         work_dir = (
             work_dir / self.WORK_DIR_NAME
             if work_dir is not None
-            else self.destination.parent / "work" / self.WORK_DIR_NAME
+            else self.destination.parent
+            / "work"
+            / self.WORK_DIR_NAME
+            / f"sub-{self.participant_label}"
         )
         work_dir.mkdir(exist_ok=True, parents=True)
         return work_dir
@@ -391,7 +394,9 @@ class DmriPrep:
         )
         return pipeline_generator
 
-    def generate_starting_point(self, session_base: Union[Path, str]) -> pe.Node:
+    def generate_starting_point(
+        self, session_base: Union[Path, str]
+    ) -> pe.Node:
         """
         Generate a node for query the dataset for needed files.
 
@@ -410,7 +415,9 @@ class DmriPrep:
         datagrabber.inputs.base_directory = session_base
         return pe.Node(datagrabber, name="datagrabber")
 
-    def build_pipeline(self, session_data: dict) -> pe.Workflow:
+    def build_cleaning_pipeline(
+        self, session_data: dict, base_dir: Union[Path, str]
+    ) -> pe.Workflow:
         """
         Generate a workflow denoting the pipeline.
 
@@ -421,8 +428,8 @@ class DmriPrep:
 
         Returns
         -------
-        [type]
-            [description]
+        pe.Workflow
+            An instanciated workflow containing all data-cleaning-related nodes.
         """
         pipeline_generator = self.infer_pe_for_preprocessing(session_data)
         mif_files = self.convert_session_to_mif(session_data)
@@ -433,6 +440,18 @@ class DmriPrep:
         generator = pipeline_generator.get("generator")
         workflow = generator(pipeline_generator.get("nodes"))
         return workflow
+
+    def set_session_working_directory(self, session_id) -> Path:
+        base_dir = self.work_dir / f"ses-{session_id}"
+        base_dir.mkdir(exist_ok=True, parents=True)
+        return base_dir
+
+    def run_pipeline(self):
+        self.preprocessing = {}
+        for session_id, session_data in self.data_by_sessions.items():
+            base_dir = self.set_session_working_directory(session_id)
+            workflow = self.build_cleaning_pipeline(session_data, base_dir)
+            self.preprocessing[session_id = workflow.run()
 
     @property
     def sessions(self) -> list:

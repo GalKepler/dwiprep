@@ -2,32 +2,30 @@ import nipype.pipeline.engine as pe
 import nipype.interfaces.mrtrix3 as mrt
 
 DEFAULT_KWARGS = {
-    # dwidenoise
-    "denoise": {},
-    # mrcat
-    "concatenate": {},
-    # dwifslpreproc
-    "preproc": {
-        "rpe_options": "pair",
-        "align_seepi": True,
-        "eddy_options": " --slm=linear",
+    # dwi2tensor
+    "fit_tensor": {},
+    # tensor2metric
+    "compute_metrics": {
+        "out_fa": "FA.mif",
+        "out_adc": "MD.mif",
+        "out_ad": "AD.mif",
+        "out_rd": "RD.mif",
+        "out_cl": "CL.mif",
+        "out_cs": "CS.mif",
+        "out_evec": "EigenVector.mif",
+        "out_eval": "EigenValue.mif",
     },
-    # dwibiascorrect
-    "bias_correct": {},
 }
 NODES = {
-    # dwidenoise
-    "denoise": pe.Node(mrt.DWIDenoise(), name="denoise"),
-    # mrcat
-    "concatenate": pe.Node(mrt.MRCat(), name="mrcat"),
+    # dwi2tensor
+    "fit_tensor": pe.Node(mrt.FitTensor(), name="fit_tensor"),
+    # compute_metrics
+    "compute_metric": pe.Node(mrt.TensorMetrics(), name="compute_metrics"),
     # dwifslpreproc
-    "preproc": pe.Node(
-        mrt.DWIPreproc(),
-        name="dwifslpreproc",
-    ),
-    # dwibiascorrect
-    "bias_correct": pe.Node(mrt.DWIBiasCorrect(), name="dwibiascorrect"),
 }
+
+
+### I'll write a function to append (?) the new workflow to the cleaning one.
 
 
 def build_pipeline(nodes: dict):
