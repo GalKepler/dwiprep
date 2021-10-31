@@ -38,11 +38,11 @@ class BidsQuery:
     def __init__(
         self,
         bids_dir: Union[BIDSLayout, Path, str],
-        participant_label: str,
         dwi_identifier: dict,
         fmap_identifier: dict,
         t1w_identifier: dict,
         t2w_identifier: dict,
+        participant_label: Union[str, list] = None,
         bids_validate: bool = True,
     ) -> None:
         """
@@ -54,8 +54,8 @@ class BidsQuery:
         bids_dir : Union[BIDSLayout, Path, str]
             Either BIDSLayout or path-like object representing an existing
             BIDS-compatible dataset
-        participant_label : str
-            String representing a subject existing within *bids_dir*
+        participant_label : Union[str, list]
+            String/s representing a subject existing within *bids_dir*
         dwi_identifier : dict
             dwi data type identifiers (by BIDS entities) dictionary
         fmap_identifier : dict
@@ -69,11 +69,36 @@ class BidsQuery:
             by default True
         """
         self.bids_dir = bids_dir
-        self.participant_label = participant_label
+        self.bids_validate = bids_validate
         self.queries = self.set_queries(
             dwi_identifier, fmap_identifier, t1w_identifier, t2w_identifier
         )
-        self.bids_validate = bids_validate
+        self.participant_labels = self.find_participants(participant_label)
+
+    def find_participants(
+        self, participant_label: Union[str, list] = None
+    ) -> list:
+        """
+        Locates all relevant/available participant in *self.layout*.
+
+        Parameters
+        ----------
+        participant_label : Union[str,list], optional
+            Either a string or a list of strings of subjects' ids., by default None
+
+        Returns
+        -------
+        list
+            A list of requested/available participants' ids.
+        """
+        if participant_label is not None:
+            return (
+                participant_label
+                if isinstance(participant_label, list)
+                else [participant_label]
+            )
+        else:
+            return self.layout.get(return_type="id", target="subject")
 
     def set_queries(
         self,
@@ -137,20 +162,21 @@ class BidsQuery:
             Required preprocessing data
 
         """
-
-        subj_data = {
-            dtype: sorted(
-                self.layout.get(
-                    return_type="file",
-                    subject=self.participant_label,
-                    extension=self.FILE_EXTENSIONS,
-                    **query,
+        subjects_data = {}
+        for subject in self.participant_labels:
+            subjects_data[subject] = {
+                dtype: sorted(
+                    self.layout.get(
+                        return_type="file",
+                        subject=subject,
+                        extension=self.FILE_EXTENSIONS,
+                        **query,
+                    )
                 )
-            )
-            for dtype, query in self.queries.items()
-        }
+                for dtype, query in self.queries.items()
+            }
 
-        return subj_data
+        return subjects_data
 
     def validate_file(self, rules: dict, file_name: dict):
         """
@@ -224,7 +250,7 @@ class BidsQuery:
         return parsed_files
 
     @property
-    def subj_data(self) -> dict:
+    def subjects_data(self) -> dict:
         """
         Return subject's raw nifti files by their corresponding data types
         Returns

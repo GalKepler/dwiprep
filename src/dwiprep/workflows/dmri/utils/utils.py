@@ -8,4 +8,4 @@ WORK_DIR_NAME = "dmriprep_wf"
 
 OUTPUT_ENTITIES = {"raw_mif": {"desc": "orig"}}
 
-OUTPUT_PATTERNS = "sub-{subject}/[ses-{session}/][{datatype}/]sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_desc-{desc}]_{suffix}.nii.gz"
+OUTPUT_PATTERNS = "sub-{subject}/[ses-{session}/][{datatype}/]sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_space-{space}][_desc-{desc}]_{suffix}.nii.gz"

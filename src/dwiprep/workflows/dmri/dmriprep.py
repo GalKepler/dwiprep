@@ -1,9 +1,12 @@
 import warnings
 from typing import Union
 from pathlib import Path
+
+import nipype.pipeline.engine as pe
 from nipype.interfaces import mrtrix3 as mrt
-from traits.trait_types import Instance
+
 from dwiprep.utils.bids_query.bids_query import BidsQuery
+from dwiprep.workflows.dmri.pipelines.the_base import THE_BASE
 from dwiprep.workflows.dmri.utils.utils import (
     MANDATORY_ENTITIES,
     RECOMMENDED_ENTITIES,
@@ -16,6 +19,7 @@ from dwiprep.interfaces.mrconvert import (
     mrconvert_map_types_to_kwargs,
     mrconvert,
 )
+from dwiprep.workflows.dmri.pipelines import THE_BASE
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 
 
@@ -46,8 +50,12 @@ class DmriPrep:
         bids_query: BidsQuery,
         destination: Union[Path, str],
         participant_label: str = None,
-        run_kwargs: dict = None,
         work_dir: Path = None,
+        denoise_kwargs: dict = None,
+        mrcat_kwargs: dict = None,
+        dwifslprep_kwargs: dict = None,
+        biascorrect_kwargs: dict = None,
+        pipeline_generator: dict = THE_BASE,
     ) -> None:
         """
         Initiates an DmriPrep instance.
@@ -60,21 +68,74 @@ class DmriPrep:
             BidsQuery instance for querying a BIDS-compatible dataset.
         destination : Union[Path, str]
             Path to dmriprep's outputs
-        participant_label : str, optional
-            String identifying an existing subject in *bids_dir* (sub-xxx), by default None
+        participant_label : str
+            String identifying an existing subject in *bids_dir* (sub-xxx)
         run_kwargs : dict, optional
             User-defined keyword arguments to be passed to *dmriprep* command , by default None
         work_dir : Path, optional
            Path where intermediate results should be stored , by default None
         """
-        self.raw_data = self.validate_subject_data(bids_query.subj_data.copy())
+        self.raw_data = self.validate_subject_data(
+            bids_query.subjects_data.copy()
+        )
         self.bids_query = bids_query
         self.layout = bids_query.layout
-        self.destination = Path(destination)
         self.participant_label = participant_label
+        self.destination = Path(destination)
         self.work_dir = self.validate_working_directory(work_dir)
+        self.pipeline_generator = self.update_kwargs(
+            pipeline_generator,
+            denoise_kwargs,
+            mrcat_kwargs,
+            dwifslprep_kwargs,
+            biascorrect_kwargs,
+        )
 
-    def validate_subject_data(self, subj_data: dict):
+    def update_kwargs(
+        self,
+        pipeline_geneator: dict,
+        denoise_kwargs: dict = None,
+        mrcat_kwargs: dict = None,
+        dwifslprep_kwargs: dict = None,
+        biascorrect_kwargs: dict = None,
+    ) -> pe.Workflow:
+        """
+        Instantiate a *pe.Workflow* instance with nodes as specified in *generator* and user-specified kwargs.
+        Parameters
+        ----------
+        pipeline_geneator : dict
+            A dictionary with keys of *nodes*,*kwargs* and their connections stated as *pipeline*.
+        denoise_kwargs : dict, optional
+            Keyword arguments for *dwidenoise*, by default None
+        mrcat_kwargs : dict, optional
+            Keyword arguments for *mrcat*, by default None
+        dwifslprep_kwargs : dict, optional
+            Keyword arguments for *dwifslpreproc*, by default None
+        biascorrect_kwargs : dict, optional
+            Keyword arguments for *dwibiascorrect*, by default None
+
+        Returns
+        -------
+        pe.Workflow
+            A connected template of *pe.Workflow* as stated in *pipeline_generator*
+        """
+        pipeline_kwargs = pipeline_geneator.get("kwargs")
+        for node, node_kwargs in zip(
+            ["denoise", "concatenate", "preproc", "bias_correct"],
+            [
+                denoise_kwargs,
+                mrcat_kwargs,
+                dwifslprep_kwargs,
+                biascorrect_kwargs,
+            ],
+        ):
+            if isinstance(node_kwargs, dict):
+                for key, value in node_kwargs:
+                    pipeline_kwargs[node][key] = value
+        pipeline_geneator["kwargs"] = pipeline_kwargs
+        return pipeline_geneator
+
+    def validate_subject_data(self, subjects_data: dict):
         """
         Validates the existence of mandatory and recommended BIDS entites in *subj_data*.
 
@@ -93,19 +154,20 @@ class DmriPrep:
         FileNotFoundError
             Raises an error if any of the mandatory entities is missing.
         """
-        for mandatory_entity in self.MANDATORY_ENTITIES:
-            if mandatory_entity not in subj_data:
-                raise FileNotFoundError(
-                    MISSING_ENTITY.format(key=mandatory_entity)
-                    + "\nProcessing will not be conducted!"
-                )
-        for recommended_entity in self.RECOMMENDED_ENTITIES:
-            if recommended_entity not in subj_data:
-                warnings.warn(
-                    MISSING_ENTITY.format(key=recommended_entity)
-                    + "\nWe highly encourage using this entities for preprocessing."
-                )
-        return subj_data
+        for subj, subj_data in subjects_data.items():
+            for mandatory_entity in self.MANDATORY_ENTITIES:
+                if mandatory_entity not in subj_data:
+                    raise FileNotFoundError(
+                        MISSING_ENTITY.format(key=mandatory_entity)
+                        + "\nProcessing will not be conducted!"
+                    )
+            for recommended_entity in self.RECOMMENDED_ENTITIES:
+                if recommended_entity not in subj_data:
+                    warnings.warn(
+                        MISSING_ENTITY.format(key=recommended_entity)
+                        + "\nWe highly encourage using this entities for preprocessing."
+                    )
+        return subjects_data
 
     def validate_working_directory(self, work_dir: Path = None):
         """
@@ -296,6 +358,15 @@ class DmriPrep:
         ) in self.arrange_subject_data_by_sessions().items():
             mif_dict[session] = self.convert_session_to_mif(session_data)
         return mif_dict
+
+    def build_preprocessing_pipeline(self, session_data: dict):
+        """[summary]
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
 
     @property
     def sessions(self) -> list:
