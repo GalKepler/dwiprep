@@ -1,6 +1,8 @@
 import nipype.pipeline.engine as pe
 import nipype.interfaces.mrtrix3 as mrt
-from nipype.pipeline.engine.nodes import Node
+from nipype import Node, Function
+
+from dwiprep.workflows.dmri.utils.utils import infer_phase_encoding_direction
 
 DEFAULT_KWARGS = {
     # dwidenoise
