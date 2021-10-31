@@ -1,9 +1,13 @@
 import warnings
 from typing import Union
 from pathlib import Path
+from nipype.interfaces.io import DataSink
+from nipype import Node
 
 import nipype.pipeline.engine as pe
 from nipype.interfaces import mrtrix3 as mrt
+from nipype.pipeline.engine import workflows
+from nipype.pipeline.engine.workflows import Workflow
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.pipelines.the_base import THE_BASE
@@ -15,6 +19,7 @@ from dwiprep.workflows.dmri.utils.utils import (
     OUTPUT_PATTERNS,
     OUTPUT_ENTITIES,
     infer_phase_encoding_direction,
+    get_data_grabber,
 )
 from dwiprep.interfaces.mrconvert import (
     mrconvert_map_types_to_kwargs,
@@ -365,7 +370,7 @@ class DmriPrep:
         for (
             session,
             session_data,
-        ) in self.map_subject_data_by_sessions().items():
+        ) in self.data_by_sessions.items():
             mif_dict[session] = self.convert_session_to_mif(session_data)
         return mif_dict
 
@@ -385,6 +390,49 @@ class DmriPrep:
             self.layout, dwi_series
         )
         return pipeline_generator
+
+    def generate_starting_point(self, session_base: Union[Path, str]) -> pe.Node:
+        """
+        Generate a node for query the dataset for needed files.
+
+        Parameters
+        ----------
+        session_base : Union[Path, str]
+            Base directory for session's data
+
+        Returns
+        -------
+        pe.Node
+            An instanciated node with relevant information for querying a specific subject.
+        """
+        datagrabber = get_data_grabber()
+        datagrabber.inputs.subject_id = self.participant_label
+        datagrabber.inputs.base_directory = session_base
+        return pe.Node(datagrabber, name="datagrabber")
+
+    def build_pipeline(self, session_data: dict) -> pe.Workflow:
+        """
+        Generate a workflow denoting the pipeline.
+
+        Parameters
+        ----------
+        session_data : dict
+            A dictionary of all session's files.
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        pipeline_generator = self.infer_pe_for_preprocessing(session_data)
+        mif_files = self.convert_session_to_mif(session_data)
+        base_dir = mif_files["dwi"].parent.parent
+        pipeline_generator["nodes"][
+            "datagrabber"
+        ] = self.generate_starting_point(base_dir)
+        generator = pipeline_generator.get("generator")
+        workflow = generator(pipeline_generator.get("nodes"))
+        return workflow
 
     @property
     def sessions(self) -> list:

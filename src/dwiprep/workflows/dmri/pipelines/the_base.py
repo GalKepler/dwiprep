@@ -34,9 +34,19 @@ NODES = {
 
 
 def build_pipeline(nodes: dict):
-    workflow = pe.Workflow(name="TheBaseDWIPrep")
+    workflow = pe.Workflow(name="dMRIPrep[TheBase]")
     workflow.connect(
         [
+            (
+                nodes.get("datagrabber"),
+                nodes.get("denoise"),
+                [("dwi", "in_file")],
+            ),
+            (
+                nodes.get("datagrabber"),
+                nodes.get("concatenate"),
+                [("fmap", "in_files")],
+            ),
             (
                 nodes.get("denoise"),
                 nodes.get("preproc"),
