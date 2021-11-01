@@ -1,14 +1,10 @@
 import warnings
 from typing import Union
 from pathlib import Path
-from nipype.interfaces.io import DataSink
-from nipype import Node
+from bids.layout.models import BIDSFile
 
 import nipype.pipeline.engine as pe
-from nipype.interfaces import base, mrtrix3 as mrt
-from nipype.pipeline.engine import workflows
-from nipype.pipeline.engine.workflows import Workflow
-from sqlalchemy.orm import interfaces
+from nipype.interfaces import mrtrix3 as mrt
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.pipelines.the_base import THE_BASE
@@ -26,6 +22,7 @@ from dwiprep.interfaces.mrconvert import (
     mrconvert_map_types_to_kwargs,
     mrconvert,
 )
+from dwiprep.interfaces.dwiextract import dwiextract
 from dwiprep.workflows.dmri.pipelines import THE_BASE
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 
@@ -329,7 +326,7 @@ class DmriPrep:
         """
         associated_files = self.bids_query.get_associated(in_file)
         out_fname, entities = self.build_output_name("raw_mif", in_file)
-        output = self.destination / f"{out_fname.split('.')[0]}.mif"
+        output = self.destination / out_fname
         if output.exists():
             return output
         output.parent.mkdir(exist_ok=True, parents=True)
@@ -361,8 +358,51 @@ class DmriPrep:
                 ]
             else:
                 mif_dict[key] = self.convert_file_to_mif(value, key)
-
+        self.validate_opposite_phase_encoding(mif_dict, session_data)
         return mif_dict
+
+    def create_opposite_phase(self, dwi: str, fmap: BIDSFile) -> Path:
+        fmap_entities = fmap.get_entities().copy()
+        fmap_entities["direction"] = fmap_entities["direction"][::-1]
+        out_name, _ = self.build_output_name(
+            "raw_mif", base_entities=fmap_entities
+        )
+        output = self.destination / out_name
+        if not output.exists():
+            dwiextract({"in_file": dwi, "out_file": output})
+        return output
+
+    def get_opposite_phase_dwi(
+        self, fmap: BIDSFile, session_data: dict
+    ) -> str:
+        entities = fmap.get_entities()
+        opposite_phase = entities.get("direction")[::-1]
+        opposite_phase_dwi = session_data.get("dwi")
+        if isinstance(opposite_phase_dwi, list):
+            opposite_phase_dwi = [
+                dwi for dwi in opposite_phase_dwi if opposite_phase is dwi
+            ]
+            if opposite_phase_dwi:
+                return opposite_phase_dwi[0]
+        else:
+            return opposite_phase_dwi
+
+    def validate_opposite_phase_encoding(
+        self, session_mif_data: dict, session_orig_data: dict
+    ):
+        """[summary]
+
+        Parameters
+        ----------
+        session_data : dict
+            [description]
+        """
+        fmap = session_mif_data.get("fmap")
+        if isinstance(fmap, Path):
+            fmap_bids = self.layout.get_file(session_orig_data.get("fmap"))
+            dwi = self.get_opposite_phase_dwi(fmap_bids, session_mif_data)
+            opposite_fmap = self.create_opposite_phase(dwi, fmap_bids)
+            session_mif_data["fmap"] = [fmap, opposite_fmap]
 
     def initiate_working_directory(self) -> dict:
         """
@@ -378,7 +418,11 @@ class DmriPrep:
             session,
             session_data,
         ) in self.data_by_sessions.items():
-            mif_dict[session] = self.convert_session_to_mif(session_data)
+            session_mif_dict = self.convert_session_to_mif(session_data)
+            self.validate_opposite_phase_encoding(
+                session_mif_dict, session_data
+            )
+            mif_dict[session] = session_dict
         return mif_dict
 
     def infer_pe_for_preprocessing(self, session_data: dict):

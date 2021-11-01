@@ -11,13 +11,13 @@ RELEVANT_DATA_TYPES = ["dwi", "fmap"]
 
 WORK_DIR_NAME = "dmriprep_wf"
 
-OUTPUT_ENTITIES = {"raw_mif": {"description": "orig"}}
+OUTPUT_ENTITIES = {"raw_mif": {"description": "orig", "extension": "mif"}}
 
 OUTPUT_PATTERNS = "sub-{subject}/[ses-{session}/][{datatype}/]sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_space-{space}][_desc-{description}]_{suffix}.{extension}"
 
 STARTING_TEMPLATES = {
-    "dwi": "dwi/sub-%s*_dwi.mif",
-    "fmap": "fmap/sub-%s*.mif",
+    "dwi": "dwi/sub-%s*desc-orig*dwi.mif",
+    "fmap": "fmap/sub-%s*desc-orig*.mif",
 }
 
 
@@ -55,6 +55,9 @@ def infer_phase_encoding_direction(
             "A valid DWI series must be provided to infer phase encoding direction!"
         )
     return bids_file.get_metadata().get("PhaseEncodingDirection")
+
+
+
 
 
 def get_relevant_files(session_data: dict):
