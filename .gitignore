@@ -107,3 +107,7 @@ ENV/
 
 # notebooks
 *.ipynb
+
+# workflows-related
+crash-*
+*.pklz
