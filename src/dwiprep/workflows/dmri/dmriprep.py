@@ -8,6 +8,7 @@ import nipype.pipeline.engine as pe
 from nipype.interfaces import base, mrtrix3 as mrt
 from nipype.pipeline.engine import workflows
 from nipype.pipeline.engine.workflows import Workflow
+from sqlalchemy.orm import interfaces
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.pipelines.the_base import THE_BASE
@@ -50,6 +51,9 @@ class DmriPrep:
 
     #: Output descriptions (desc-*) BIDS label
     OUTPUT_ENTITIES = OUTPUT_ENTITIES
+
+    #: Basic entities
+    BASE_ENTITIES = {"subject": "participant_label"}
 
     def __init__(
         self,
@@ -201,10 +205,7 @@ class DmriPrep:
         work_dir = (
             work_dir / self.WORK_DIR_NAME
             if work_dir is not None
-            else self.destination.parent
-            / "work"
-            / self.WORK_DIR_NAME
-            / f"sub-{self.participant_label}"
+            else self.destination.parent / "work" / self.WORK_DIR_NAME
         )
         work_dir.mkdir(exist_ok=True, parents=True)
         return work_dir
@@ -416,7 +417,7 @@ class DmriPrep:
         return pe.Node(datagrabber, name="datagrabber")
 
     def build_cleaning_pipeline(
-        self, session_data: dict, base_dir: Union[Path, str]
+        self, session_id: str, session_data: dict, base_dir: Union[Path, str]
     ) -> pe.Workflow:
         """
         Generate a workflow denoting the pipeline.
@@ -433,25 +434,180 @@ class DmriPrep:
         """
         pipeline_generator = self.infer_pe_for_preprocessing(session_data)
         mif_files = self.convert_session_to_mif(session_data)
-        base_dir = mif_files["dwi"].parent.parent
         pipeline_generator["nodes"][
             "datagrabber"
         ] = self.generate_starting_point(base_dir)
+        pipeline_generator = self.set_workflow_outputs(
+            pipeline_generator, session_id, session_data
+        )
         generator = pipeline_generator.get("generator")
         workflow = generator(pipeline_generator.get("nodes"))
-        return workflow
+        return pipeline_generator, workflow
 
     def set_session_working_directory(self, session_id) -> Path:
-        base_dir = self.work_dir / f"ses-{session_id}"
+        """
+        Retrieve a working directory for current session
+
+        Parameters
+        ----------
+        session_id : str
+            BIDS-compatible ses-xxx label.
+
+        Returns
+        -------
+        Path
+            Path to corresponding working directory
+        """
+        base_dir = (
+            self.work_dir
+            / f"sub-{self.participant_label}"
+            / f"ses-{session_id}"
+        )
         base_dir.mkdir(exist_ok=True, parents=True)
         return base_dir
 
+    def set_session_output_directory(self, session_id: str) -> Path:
+        """
+        Generate an output directory so store pipeline's output
+
+        Parameters
+        ----------
+        session_id : str
+            BIDS-compatible ses-xxx label.
+
+        Returns
+        -------
+        Path
+            Path to session's output directory.
+        """
+        destination = (
+            self.destination
+            / f"sub-{self.participant_label}"
+            / f"ses-{session_id}"
+        )
+        destination.mkdir(exist_ok=True, parents=True)
+        return destination
+
+    def infer_output_path(
+        self, entities: dict, session_data: dict, session_id: str = None
+    ) -> Path:
+        """
+        Build an output path for pipeline's nodes according to their BIDS-compatible entities.
+
+        Parameters
+        ----------
+        entities : dict
+            BIDS-compatible entities
+        session_data : dict
+            Subject's session-related data
+        session_id : str, optional
+            Session identifier, by default None
+
+        Returns
+        -------
+        Path
+            Path to entities-derived output
+        """
+        source_key, target = entities.pop("source"), entities.pop("output")
+        target_dir = self.destination if target else self.work_dir
+        source = session_data.get(source_key)
+        if isinstance(source, list):
+            source_entities = {
+                key: getattr(self, val)
+                for key, val in self.BASE_ENTITIES.items()
+            }
+            if session_id is not None:
+                source_entities["session"] = session_id
+        elif isinstance(source, str):
+            source_entities = self.layout.get_file(source).get_entities()
+        for key, value in entities.items():
+            source_entities[key] = value
+        output_path = target_dir / self.layout.build_path(
+            source_entities,
+            self.OUTPUT_PATTERNS,
+            validate=False,
+            absolute_paths=False,
+        )
+        output_path.parent.mkdir(exist_ok=True, parents=True)
+        return output_path
+
+    def set_workflow_outputs(
+        self, pipeline_generator: dict, session_id: str, session_data: dict
+    ) -> dict:
+        """
+        Updates the location of output files according to their corresponding entities session's parameters.
+
+        Parameters
+        ----------
+        pipeline_generator : dict
+            A dictionary with pipeline's constructors.
+        session_id : str
+            Session's identifier
+        session_data : dict
+            Session-related data
+
+        Returns
+        -------
+        dict
+            A dictionary with modified output paths that matches their entities and session-specific parameters.
+        """
+        nodes, outputs = pipeline_generator.get(
+            "nodes"
+        ), pipeline_generator.get("outputs")
+        node_outputs = {}
+        for node in nodes:
+            node_outputs[node] = {}
+            node_output_entities = outputs.get(node)
+            if node_output_entities is None:
+                continue
+            for key, entities in node_output_entities.items():
+                node_outputs[node][key] = self.infer_output_path(
+                    entities, session_data, session_id
+                )
+
+        pipeline_generator["nodes"] = self.update_nodes_outputs(
+            node_outputs, nodes
+        )
+        return pipeline_generator
+
+    def update_nodes_outputs(self, node_outputs: dict, nodes: dict) -> dict:
+        """
+        Update the outputs-related kwargs of different nodes of the pipeline.
+
+        Parameters
+        ----------
+        node_outputs : dict
+            A dictionary with keys corresponding to node's output-related kwargs.
+        nodes : dict
+            The node and its corresponding interface.
+
+        Returns
+        -------
+        dict
+            A updated copy of *nodes* with filled output-related fields.
+        """
+        updated_nodes = nodes.copy()
+        for node, interface in nodes.items():
+            outputs = node_outputs.get(node)
+            if outputs is None:
+                continue
+            for key, value in outputs.items():
+                updated_nodes[node].set_input(key, value)
+        return updated_nodes
+
     def run_pipeline(self):
+        """
+        Run *self.pipeline_generator* over all of subject's sessions.
+        """
         self.preprocessing = {}
         for session_id, session_data in self.data_by_sessions.items():
             base_dir = self.set_session_working_directory(session_id)
-            workflow = self.build_cleaning_pipeline(session_data, base_dir)
-            self.preprocessing[session_id = workflow.run()
+            output_dir = self.set_session_output_directory(session_id)
+            generator, workflow = self.build_cleaning_pipeline(
+                session_id, session_data, output_dir
+            )
+            workflow.base_dir = base_dir
+            self.preprocessing[session_id] = workflow.run()
 
     @property
     def sessions(self) -> list:

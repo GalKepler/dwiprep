@@ -13,7 +13,7 @@ DEFAULT_KWARGS = {
         "eddy_options": " --slm=linear",
     },
     # dwibiascorrect
-    "bias_correct": {},
+    "bias_correct": {"use_ants": True},
 }
 NODES = {
     # dwidenoise
@@ -29,9 +29,61 @@ NODES = {
     "bias_correct": pe.Node(mrt.DWIBiasCorrect(), name="dwibiascorrect"),
 }
 
+OUTPUT_ENTITIES = {
+    "denoise": {
+        "out_file": {
+            "output": False,
+            "source": "dwi",
+            "datatype": "dwi",
+            "space": "dwi",
+            "description": "denoised",
+            "extension": "mif",
+        },
+        "noise": {
+            "output": False,
+            "source": "dwi",
+            "datatype": "dwi",
+            "space": "dwi",
+            "description": "noise",
+            "extension": "mif",
+        },
+    },
+    "concatenate": {
+        "out_file": {
+            "output": False,
+            "source": "fmap",
+            "datatype": "fmap",
+            "space": "dwi",
+            "description": "phasediff",
+            "extension": "mif",
+            "suffix": "fmap",
+        }
+    },
+    "preproc": {
+        "out_file": {
+            "output": False,
+            "source": "dwi",
+            "datatype": "dwi",
+            "space": "dwi",
+            "description": "eddynobiascorr",
+            "extension": "mif",
+        }
+    },
+    "bias_correct": {
+        "out_file": {
+            "output": True,
+            "source": "dwi",
+            "datatype": "dwi",
+            "space": "dwi",
+            "description": "preproc",
+            "extension": "mif",
+        }
+    },
+}
+
 
 def build_pipeline(nodes: dict):
-    workflow = pe.Workflow(name="dmriprep")
+    workflow = pe.Workflow(name="dmriprep_wf")
     workflow.connect(
         [
             (
@@ -67,5 +119,6 @@ def build_pipeline(nodes: dict):
 THE_BASE = {
     "nodes": NODES,
     "kwargs": DEFAULT_KWARGS,
+    "outputs": OUTPUT_ENTITIES,
     "generator": build_pipeline,
 }
