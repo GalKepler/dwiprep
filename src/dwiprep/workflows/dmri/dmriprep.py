@@ -55,6 +55,9 @@ class DmriPrep:
     #: Basic entities
     BASE_ENTITIES = {"subject": "participant_label"}
 
+    #: Non-entity outputs
+    NON_ENTITY_ITEMS = ["source", "output"]
+
     def __init__(
         self,
         bids_query: BidsQuery,
@@ -508,7 +511,9 @@ class DmriPrep:
         Path
             Path to entities-derived output
         """
-        source_key, target = entities.pop("source"), entities.pop("output")
+        source_key, target = [
+            entities.get(key) for key in self.NON_ENTITY_ITEMS
+        ]
         target_dir = self.destination if target else self.work_dir
         source = session_data.get(source_key)
         if isinstance(source, list):
@@ -521,7 +526,8 @@ class DmriPrep:
         elif isinstance(source, str):
             source_entities = self.layout.get_file(source).get_entities()
         for key, value in entities.items():
-            source_entities[key] = value
+            if key not in self.NON_ENTITY_ITEMS:
+                source_entities[key] = value
         output_path = target_dir / self.layout.build_path(
             source_entities,
             self.OUTPUT_PATTERNS,
