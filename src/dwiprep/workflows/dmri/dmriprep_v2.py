@@ -16,6 +16,7 @@ from dwiprep.workflows.dmri.base import (
     init_preprocess_wf,
     init_datagrabber,
     init_mrconvert_wf,
+    get_inputnode,
 )
 from dwiprep.utils.bids_query.utils import FILE_EXTENSIONS
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
@@ -57,10 +58,12 @@ class DmriPrep:
         bids_query: BidsQuery,
         participant_label: str,
         destination: str,
+        session: str = None,
         work_dir: str = None,
     ) -> None:
         """[summary]"""
         self.participant_label = participant_label
+        self.session = session
         self.bids_query = bids_query
         self.destination = Path(destination) / self.OUTPUT_NAME
         self.work_dir = self.validate_work_dir(work_dir)
@@ -133,7 +136,7 @@ class DmriPrep:
                 return False
         return True
 
-    def get_session_data(self, session: str = None) -> dict:
+    def get_session_data(self) -> dict:
         """
         Return all session-related relevant data.
 
@@ -151,8 +154,8 @@ class DmriPrep:
             "return_type": "file",
             "subject": self.participant_label,
         }
-        if session is not None:
-            kwargs["session"] = session
+        if self.session is not None:
+            kwargs["session"] = self.session
         return {
             dtype: sorted(
                 self.bids_query.layout.get(
@@ -164,7 +167,7 @@ class DmriPrep:
         }
 
     def map_session_data_to_mrconvert_kwargs(
-        self, session_id: str = None
+        self,
     ) -> dict:
         """
         Map file names to their appropriate kwarg in *MRConvert* function.
@@ -180,11 +183,13 @@ class DmriPrep:
             Dictionary with keys that are keyword arguments of *MRConvert*
         """
         mapped_data = {}
-        for data_type, file_names in self.get_session_data(session_id).items():
-            mapped_data[data_type] = mrconvert_map(file_names)
+        for data_type, file_names in self.session_data.items():
+            mapped_data[data_type] = mrconvert_map(
+                file_names, self.MAP_KWARGS_TO_SUFFIXES
+            )
         return mapped_data
 
-    def get_mif_conversion_nodes(self, session_id: str = None) -> dict:
+    def get_mif_conversion_nodes(self) -> dict:
         """
         Generate *MRConvert*-based nodes with appropriate inputs for different data types.
 
@@ -199,9 +204,10 @@ class DmriPrep:
             A dictionary of data types and their corresponding nodes.
         """
         mif_conversion_nodes = {}
-        for data_type, kwargs in self.map_session_data_to_mrconvert_kwargs(
-            session_id
-        ).items():
+        for (
+            data_type,
+            kwargs,
+        ) in self.map_session_data_to_mrconvert_kwargs().items():
             mif_conversion_nodes[data_type] = init_mrconvert_node(
                 data_type, kwargs
             )
@@ -228,6 +234,10 @@ class DmriPrep:
             session,
         )
         return grabber
+
+    def init_input_node(self):
+        inputnode = get_inputnode()
+        inputnode.inputs.dwi_file = self.session_data
 
     def init_conversion_wf(self, grabber: nio.BIDSDataGrabber):
         """
@@ -294,34 +304,6 @@ class DmriPrep:
             output_directory = output_directory / f"ses-{session}"
         return base_directory, output_directory
 
-    def start_data_sink(self, session: str = None):
-        """
-        Instanciates a DataSink instance to manage all workflow's outputs.
-
-        Parameters
-        ----------
-        session : str, optional
-            Session's identifier, by default None
-
-        Returns
-        -------
-        nio.DataSink
-            A DataSink instance to manage all workflow's outputs.
-        """
-        sinker = nio.DataSink()
-        base_directory = Path(self.work_dir) / f"sub-{self.participant_label}"
-        output_directory = (
-            Path(self.destination) / f"sub-{self.participant_label}"
-        )
-        if session:
-            base_directory = base_directory / f"ses-{session}"
-
-            output_directory = output_directory / f"ses-{session}"
-
-        sinker.inputs.base_directory = str(base_directory)
-        sinker.inputs.container = str(output_directory)
-        return pe.Node(sinker, name="sinker"), base_directory
-
     def validate_fieldmaps(self, session_data: dict):
         """
         Validates some preprocessing steps that rely on fieldmaps and their opposite phase encoding direction.
@@ -355,6 +337,10 @@ class DmriPrep:
         else:
             mif_conversion = self.get_mif_conversion_nodes()
             wf = self.build_workflow(mif_conversion)
+
+    @property
+    def session_data(self):
+        return self.get_session_data()
 
     @property
     def sessions(self):

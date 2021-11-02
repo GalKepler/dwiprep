@@ -1,11 +1,12 @@
 from bids.layout.layout import BIDSLayout
 from nipype.interfaces.mrtrix3.preprocess import DWIBiasCorrect, DWIDenoise
 from nipype.interfaces.mrtrix3.utils import MRCat, MRMath
+from nipype.interfaces.utility.base import IdentityInterface
 import nipype.pipeline.engine as pe
 from nipype import Node, Function, interfaces
 import nipype.interfaces.io as nio
 import nipype.interfaces.mrtrix3 as mrt
-from nipype.interfaces.utility import Merge
+from nipype.interfaces.utility import Merge, IdentityInterface
 from dwiprep.workflows.dmri.utils.utils import (
     infer_phase_encoding_direction_mif,
 )
@@ -87,7 +88,6 @@ DWI2TENSOR_KWARGS = {
         }
     },
 }
-# tensor2metric
 
 TENSOR2METRICS_KWARGS = {
     "inputs": {},
@@ -148,6 +148,26 @@ TENSOR2METRICS_KWARGS = {
         },
     },
 }
+
+
+def get_inputnode():
+    return pe.Node(
+        IdentityInterface(
+            fields=[
+                # DWI
+                "dwi_file",
+                "in_bvec",
+                "in_bval",
+                "in_json",
+                # fmap
+                "fmap_ap",
+                "fmap_ap_json",
+                "fmap_pa",
+                "fmap_pa_json",
+            ]
+        ),
+        name="inputnode",
+    )
 
 
 def init_datagrabber(

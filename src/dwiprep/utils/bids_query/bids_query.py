@@ -16,6 +16,7 @@ from dwiprep.utils.bids_query.utils import (
     FILE_TYPES_BY_EXTENSIONS,
     FILE_EXTENSIONS,
     ENTITY_PATTERN,
+    rename_session_data_by_fieldmap,
 )
 
 
@@ -150,33 +151,33 @@ class BidsQuery:
             layout = BIDSLayout(str(self.bids_dir), self.bids_validate)
         return layout
 
-    def collect_data(
-        self,
-    ) -> Tuple[dict, BIDSLayout, dict]:
+    def collect_data(self, subject: str) -> dict:
         """
         Collects processing-relevant files from a BIDS dataset.
 
         Returns
         -------
-        tuple
+        dict
             Required preprocessing data
 
         """
-        subjects_data = {}
-        for subject in self.participant_labels:
-            subjects_data[subject] = {
-                dtype: sorted(
-                    self.layout.get(
-                        return_type="file",
-                        subject=subject,
-                        extension=self.FILE_EXTENSIONS,
-                        **query,
-                    )
-                )
-                for dtype, query in self.queries.items()
-            }
 
-        return subjects_data
+        return {
+            dtype: sorted(
+                self.layout.get(
+                    return_type="file",
+                    subject=subject,
+                    extension=self.FILE_EXTENSIONS,
+                    **query,
+                )
+            )
+            for dtype, query in self.queries.items()
+        }
+
+    def collect_sorted_data(self, subject: str) -> dict:
+        return rename_session_data_by_fieldmap(
+            self.layout, self.collect_data(subject)
+        )
 
     def validate_file(self, rules: dict, file_name: dict):
         """
@@ -248,17 +249,6 @@ class BidsQuery:
             if file_type:
                 parsed_files[file_type[0]] = file_name.path
         return parsed_files
-
-    @property
-    def subjects_data(self) -> dict:
-        """
-        Return subject's raw nifti files by their corresponding data types
-        Returns
-        -------
-        dict
-            subject's raw nifti files by their corresponding data types
-        """
-        return self.collect_data()
 
     @property
     def layout(self) -> BIDSLayout:
