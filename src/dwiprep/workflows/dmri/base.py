@@ -1,9 +1,6 @@
-from bids.layout.layout import BIDSLayout
-from nipype.interfaces.mrtrix3.preprocess import DWIBiasCorrect, DWIDenoise
-from nipype.interfaces.mrtrix3.utils import MRCat, MRMath
 from nipype.interfaces.utility.base import IdentityInterface
 import nipype.pipeline.engine as pe
-from nipype import Node, Function, interfaces
+from nipype import Function
 import nipype.interfaces.io as nio
 import nipype.interfaces.mrtrix3 as mrt
 from nipype.interfaces.utility import Merge, IdentityInterface
@@ -11,8 +8,6 @@ from dwiprep.workflows.dmri.utils.utils import (
     infer_phase_encoding_direction_mif,
 )
 from dwiprep.interfaces.mrconvert import map_list_to_kwargs, parse_dict_by_keys
-from nipype.interfaces.io import DataSink
-from pathlib import Path
 
 DWIEXTRACT_KWARGS = {
     "inputs": {"bzero": True, "out_file": "b0.mif"},

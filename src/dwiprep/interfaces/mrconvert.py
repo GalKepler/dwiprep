@@ -1,7 +1,4 @@
 from nipype.interfaces import mrtrix3 as mrt
-from nipype import Node, Function
-from typing import Tuple
-from pathlib import Path
 
 KWARGS_BY_FILE_TYPES = {
     "nifti": "in_file",

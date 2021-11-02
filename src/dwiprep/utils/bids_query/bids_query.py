@@ -3,7 +3,7 @@ Definition of the data collection and validation functions used by the DWIprep
 preprocessing workflow.
 """
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union
 
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile
@@ -39,10 +39,10 @@ class BidsQuery:
     def __init__(
         self,
         bids_dir: Union[BIDSLayout, Path, str],
-        dwi_identifier: dict,
-        fmap_identifier: dict,
-        t1w_identifier: dict,
-        t2w_identifier: dict,
+        dwi_identifier: dict = {},
+        fmap_identifier: dict = {},
+        t1w_identifier: dict = {},
+        t2w_identifier: dict = {},
         participant_label: Union[str, list] = None,
         bids_validate: bool = True,
     ) -> None:
@@ -151,7 +151,7 @@ class BidsQuery:
             layout = BIDSLayout(str(self.bids_dir), self.bids_validate)
         return layout
 
-    def collect_data(self, subject: str) -> dict:
+    def query_data(self, subject: str, session: str = None) -> dict:
         """
         Collects processing-relevant files from a BIDS dataset.
 
@@ -161,23 +161,85 @@ class BidsQuery:
             Required preprocessing data
 
         """
-
+        base_queries = {"return_type": "file", "subject": subject,
+                        "extension": self.FILE_EXTENSIONS}
+        if session:
+            base_queries["session"] = session
         return {
             dtype: sorted(
                 self.layout.get(
-                    return_type="file",
-                    subject=subject,
-                    extension=self.FILE_EXTENSIONS,
+                    **base_queries,
                     **query,
                 )
             )
             for dtype, query in self.queries.items()
         }
 
-    def collect_sorted_data(self, subject: str) -> dict:
+    def collect_niftis(self, subject: str, session: str = None) -> dict:
+        """
+        Collect all NIfTIs related to *subject* and *session*
+
+        Parameters
+        ----------
+        subject : str
+            Subject identifier
+        session : str, optional
+            Session identifier, by default None
+
+        Returns
+        -------
+        dict
+            All NIfTIs related to *subject* and *session*
+        """
         return rename_session_data_by_fieldmap(
-            self.layout, self.collect_data(subject)
+            self.layout, self.query_data(subject, session)
         )
+
+    def collect_data(self, subject: str, session: str = None) -> dict:
+        """
+        Collects all data related to *subject* and *session*
+
+        Parameters
+        ----------
+        subject : str
+            Subject's identifier
+        session : str
+            Session identifier, by default None
+
+        Returns
+        -------
+        dict
+            All files related to *subject* and *session* by their corresponding suffixes
+        """
+        session_niftis = self.collect_niftis(subject, session)
+        session_data = {}
+        for key, nifti in session_niftis.items():
+            if not nifti:
+                continue
+            if isinstance(nifti, list):
+                associated_files = [
+                    self.get_parsed_associations(nii) for nii in nifti]
+            else:
+                associated_files = [self.get_parsed_associations(nifti)]
+            session_data[key] = associated_files
+        return session_data
+
+    def get_parsed_associations(self, nifti: str) -> dict:
+        """
+        Collects all associations to *nifti* and mas them to corresponding suffixes.
+
+        Parameters
+        ---------
+        nifti : str
+            Path to NIfTI file
+
+        Returns
+        -------
+        dict
+            All files associated with *nifti* mapped by their corresponding suffixes.
+        """
+        associations = self.get_associated(nifti)
+        return self.parse_associated_files(associations)
 
     def validate_file(self, rules: dict, file_name: dict):
         """
@@ -216,7 +278,7 @@ class BidsQuery:
         assoc_json = [
             j
             for j in bids_file.get_associations()
-            if j.entities.get("extension") == ".json"
+            if j.entities.get("extension").strip(".") == "json"
         ]
         return (
             assoc_json + assoc_json[0].get_associations()

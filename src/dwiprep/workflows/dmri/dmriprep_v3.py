@@ -1,30 +1,13 @@
 from pathlib import Path
 from typing import Tuple
-import nipype
-from nipype.interfaces.utility import IdentityInterface
-from nipype.pipeline.engine.workflows import Workflow
 from dwiprep.utils.bids_query.bids_query import BidsQuery
-import nipype.interfaces.io as nio
-import nipype.pipeline.engine as pe
 from dwiprep.interfaces.mrconvert import (
     MAP_KWARGS_TO_SUFFIXES,
-    map_list_to_kwargs as mrconvert_map,
 )
-from dwiprep.workflows.dmri.base import (
-    connect_conversion_to_wf,
-    connect_tensor_wf,
-    init_mrconvert_node,
-    init_preprocess_wf,
-    init_datagrabber,
-    init_mrconvert_wf,
-    get_inputnode,
-)
-from dwiprep.utils.bids_query.utils import FILE_EXTENSIONS
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 from dwiprep.workflows.dmri.utils.utils import (
     MANDATORY_ENTITIES,
     RECOMMENDED_ENTITIES,
-    check_opposite_phase_encoding,
 )
 
 import warnings

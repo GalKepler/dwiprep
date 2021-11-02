@@ -1,8 +1,6 @@
 from bids import BIDSLayout
 from typing import Union
 from pathlib import Path
-from nipype.interfaces.io import DataGrabber
-from niworkflows.interfaces.bids import DerivativesDataSink
 
 MANDATORY_ENTITIES = ["dwi"]
 
