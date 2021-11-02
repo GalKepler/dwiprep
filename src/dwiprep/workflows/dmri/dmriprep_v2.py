@@ -1,12 +1,21 @@
+from pathlib import Path
+import nipype
+from nipype.interfaces.utility import IdentityInterface
 from nipype.pipeline.engine.workflows import Workflow
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 import nipype.interfaces.io as nio
-from dwiprep.interfaces.mrconvert import map_list_to_kwargs as mrconvert_map
+import nipype.pipeline.engine as pe
+from dwiprep.interfaces.mrconvert import (
+    MAP_KWARGS_TO_SUFFIXES,
+    map_list_to_kwargs as mrconvert_map,
+)
 from dwiprep.workflows.dmri.base import (
     connect_conversion_to_wf,
     connect_tensor_wf,
     init_mrconvert_node,
     init_preprocess_wf,
+    init_datagrabber,
+    init_mrconvert_wf,
 )
 from dwiprep.utils.bids_query.utils import FILE_EXTENSIONS
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
@@ -31,7 +40,8 @@ class DmriPrep:
 
     #: DWI-related MRConvert inputs
     DWI_MRCONVERT_INPUTS = ["in_bvec", "in_bval"]
-
+    #: Mapping of suffixes to mrconvert's kwargs
+    MAP_KWARGS_TO_SUFFIXES = MAP_KWARGS_TO_SUFFIXES
     #: Basic output fields for BIDSDataGrabber
     BASIC_DATAGRABBER_OUTFIELDS = {
         "T1w": BASIC_MRCONVERT_INPUTS,
@@ -40,10 +50,38 @@ class DmriPrep:
         "fmap": BASIC_MRCONVERT_INPUTS,
     }
 
-    def __init__(self, bids_query: BidsQuery, participant_label: str) -> None:
+    def __init__(
+        self,
+        bids_query: BidsQuery,
+        participant_label: str,
+        destination: str,
+        work_dir: str = None,
+    ) -> None:
         """[summary]"""
         self.participant_label = participant_label
         self.bids_query = bids_query
+        self.destination = destination
+        self.work_dir = self.validate_work_dir(work_dir)
+
+    def validate_work_dir(self, work_dir: str = None):
+        """
+        Locates a working directory.
+
+        Parameters
+        ----------
+        work_dir : str, optional
+            Path tot working directory, by default None
+
+        Returns
+        -------
+        str
+            Path to working directory
+        """
+        return (
+            work_dir
+            if work_dir is not None
+            else str(Path(self.destination) / "work")
+        )
 
     def get_sessions(self):
         """
@@ -167,7 +205,50 @@ class DmriPrep:
             )
         return mif_conversion_nodes
 
-    def build_workflow(self, mif_data: dict) -> Workflow:
+    def build_data_grabber(self, session: str = None):
+        """
+        Generates a BIDSDataGrabber instance suited for specific subject/session
+
+        Parameters
+        ----------
+        session : str
+            Session identifier
+
+        Returns
+        -------
+        BIDSDataGrabber
+            A `BIDSDataGrabber` instance suited for specific subject/session
+        """
+        grabber = init_datagrabber(
+            self.bids_query.bids_dir,
+            self.participant_label,
+            self.bids_query.queries,
+            session,
+        )
+        return grabber
+
+    def init_conversion_wf(self, grabber: nio.BIDSDataGrabber):
+        """
+        Build data-type-specific workflows
+
+        Parameters
+        ----------
+        grabber : nio.BIDSDataGrabber
+            A `BIDSDataGrabber` instance suited for specific subject/session
+
+        Returns
+        -------
+        dict
+            datatype-specific mif conversion workflows
+        """
+        conversion_dict = {}
+        for data_type in self.bids_query.queries:
+            conversion_dict[data_type] = init_mrconvert_wf(
+                data_type, grabber, self.MAP_KWARGS_TO_SUFFIXES
+            )
+        return conversion_dict
+
+    def build_workflow(self, session: str = None) -> Workflow:
         """
         Instanciates the initial cleaning workflow with *mif_data* as starting point.
 
@@ -181,10 +262,48 @@ class DmriPrep:
         Workflow
             An instanciated workflow for preprocessing of specific session.
         """
-        wf = init_preprocess_wf()
-        wf = connect_conversion_to_wf(mif_data, wf)
-        wf = connect_tensor_wf(wf)
+        inputnode = self.build_data_grabber(session)
+        conversion_wf = self.init_conversion_wf(inputnode)
+        session_data = self.get_session_data(session)
+        wf = init_preprocess_wf(
+            self.bids_query.bids_dir,
+            self.destination,
+            session_data.get("dwi")[0],
+            session_data.get("fmap")[0],
+        )
+
+        wf = connect_conversion_to_wf(conversion_wf, wf, sinker)
+        wf = connect_tensor_wf(wf, sinker)
+        wf.base_dir = base_dir
         return wf
+
+    def start_data_sink(self, session: str = None):
+        """
+        Instanciates a DataSink instance to manage all workflow's outputs.
+
+        Parameters
+        ----------
+        session : str, optional
+            Session's identifier, by default None
+
+        Returns
+        -------
+        nio.DataSink
+            A DataSink instance to manage all workflow's outputs.
+        """
+        sinker = nio.DataSink()
+        base_directory = Path(self.work_dir) / f"sub-{self.participant_label}"
+        output_directory = (
+            Path(self.destination) / f"sub-{self.participant_label}"
+        )
+        if session:
+            base_directory = base_directory / f"ses-{session}"
+
+            output_directory = output_directory / f"ses-{session}"
+
+        sinker.inputs.base_directory = str(base_directory)
+        sinker.inputs.container = str(output_directory)
+        return pe.Node(sinker, name="sinker"), base_directory
 
     def validate_fieldmaps(self, session_data: dict):
         """
@@ -210,6 +329,15 @@ class DmriPrep:
             extract_b0 = False
             run_sdc = False
         return extract_b0, run_sdc
+
+    def run_preprocessing(self):
+        if self.sessions:
+            for session in self.sessions:
+                mif_conversion = self.get_mif_conversion_nodes(session)
+                wf = self.build_workflow(mif_conversion, session)
+        else:
+            mif_conversion = self.get_mif_conversion_nodes()
+            wf = self.build_workflow(mif_conversion)
 
     @property
     def sessions(self):

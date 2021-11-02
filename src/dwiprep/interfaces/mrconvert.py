@@ -18,9 +18,7 @@ MAP_KWARGS_TO_SUFFIXES = {
 }
 
 
-def map_list_to_kwargs(
-    file_names: list, mapping: dict = MAP_KWARGS_TO_SUFFIXES
-):
+def map_list_to_kwargs(file_names: list, mapping: dict):
     """
     Maps a list of files to their corresponding *mrconvert* inputs kwargs.
 
@@ -34,6 +32,7 @@ def map_list_to_kwargs(
     Tuple[str, str, str, str]
         Four sorted outputs: *in_file*,*json*,*bvec*,*bval*
     """
+    from pathlib import Path
 
     out_dict = {}
     for file_name in file_names:
@@ -43,6 +42,14 @@ def map_list_to_kwargs(
             if suffix in val:
                 out_dict[key] = file_name
     return out_dict
+
+
+def parse_dict_by_keys(kwargs: dict):
+    in_file, json_import, in_bvec, in_bval = [
+        kwargs.get(key)
+        for key in ["in_file", "json_import", "in_bvec", "in_bval"]
+    ]
+    return in_file, json_import, in_bvec, in_bval
 
 
 def mrconvert(kwargs: dict) -> mrt.MRConvert:

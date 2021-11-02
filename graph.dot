@@ -1,6 +1,7 @@
 digraph tensor_estimation{
   label="tensor_estimation";
   tensor_estimation_fit_tensor[label="fit_tensor (mrtrix3)", style=filled, fillcolor="#FFFFC8"];
+  preprocess_sinker[label="sinker (io)", style=filled, fillcolor="#FFFFC8"];
   tensor_estimation_compute_metrics[label="compute_metrics (mrtrix3)", style=filled, fillcolor="#FFFFC8"];
   subgraph cluster_tensor_estimation_cleaning {
       edge [color="#0000FF"];
@@ -9,6 +10,7 @@ digraph tensor_estimation{
       label="cleaning";
     tensor_estimation_cleaning_dwi_mif_conversion[label="dwi_mif_conversion (mrtrix3)", style=filled, fillcolor="#E6E6FF"];
     tensor_estimation_cleaning_fmap_mif_conversion[label="fmap_mif_conversion (mrtrix3)", style=filled, fillcolor="#E6E6FF"];
+    tensor_estimation_preprocess_sinker[label="sinker (io)", style=filled, fillcolor="#E6E6FF"];
     subgraph cluster_tensor_estimation_cleaning_preprocess {
             edge [color="#FF0000"];
             style=filled;
@@ -21,17 +23,26 @@ digraph tensor_estimation{
         tensor_estimation_cleaning_preprocess_mrcat[label="mrcat (mrtrix3)", style=filled, fillcolor="#FFE6E6"];
         tensor_estimation_cleaning_preprocess_dwifslpreproc[label="dwifslpreproc (mrtrix3)", style=filled, fillcolor="#FFE6E6"];
         tensor_estimation_cleaning_preprocess_biascorrect[label="biascorrect (mrtrix3)", style=filled, fillcolor="#FFE6E6"];
+        tensor_estimation_cleaning_preprocess_sinker[label="sinker (io)", style=filled, fillcolor="#FFE6E6"];
         tensor_estimation_cleaning_preprocess_dwiextract -> tensor_estimation_cleaning_preprocess_mrmath;
         tensor_estimation_cleaning_preprocess_dwidenoise -> tensor_estimation_cleaning_preprocess_dwifslpreproc;
+        tensor_estimation_cleaning_preprocess_dwidenoise -> tensor_estimation_cleaning_preprocess_sinker;
+        tensor_estimation_cleaning_preprocess_mrmath -> tensor_estimation_cleaning_preprocess_sinker;
         tensor_estimation_cleaning_preprocess_mrmath -> tensor_estimation_cleaning_preprocess_list_files;
         tensor_estimation_cleaning_preprocess_list_files -> tensor_estimation_cleaning_preprocess_mrcat;
+        tensor_estimation_cleaning_preprocess_mrcat -> tensor_estimation_cleaning_preprocess_sinker;
         tensor_estimation_cleaning_preprocess_mrcat -> tensor_estimation_cleaning_preprocess_dwifslpreproc;
+        tensor_estimation_cleaning_preprocess_dwifslpreproc -> tensor_estimation_cleaning_preprocess_sinker;
         tensor_estimation_cleaning_preprocess_dwifslpreproc -> tensor_estimation_cleaning_preprocess_biascorrect;
+        tensor_estimation_cleaning_preprocess_biascorrect -> tensor_estimation_cleaning_preprocess_sinker;
     }
     tensor_estimation_cleaning_dwi_mif_conversion -> tensor_estimation_cleaning_preprocess_dwiextract;
     tensor_estimation_cleaning_dwi_mif_conversion -> tensor_estimation_cleaning_preprocess_dwidenoise;
+    tensor_estimation_cleaning_dwi_mif_conversion -> tensor_estimation_preprocess_sinker;
+    tensor_estimation_cleaning_dwi_mif_conversion -> tensor_estimation_preprocess_sinker;
     tensor_estimation_cleaning_fmap_mif_conversion -> tensor_estimation_cleaning_preprocess_list_files;
   }
   tensor_estimation_fit_tensor -> tensor_estimation_compute_metrics;
   tensor_estimation_cleaning_preprocess_biascorrect -> tensor_estimation_fit_tensor;
+  tensor_estimation_fit_tensor -> preprocess_sinker;
 }

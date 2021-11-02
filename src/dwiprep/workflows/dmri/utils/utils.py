@@ -2,6 +2,7 @@ from bids import BIDSLayout
 from typing import Union
 from pathlib import Path
 from nipype.interfaces.io import DataGrabber
+from niworkflows.interfaces.bids import DerivativesDataSink
 
 MANDATORY_ENTITIES = ["dwi"]
 
@@ -47,6 +48,31 @@ def infer_phase_encoding_direction(
     return bids_file.get_metadata().get("PhaseEncodingDirection")
 
 
+def infer_phase_encoding_direction_mif(in_file: str) -> str:
+    """
+    Utilizes *mrinfo* for a specific query of phase encoding direction.
+
+    Parameters
+    ----------
+    in_file : str
+        File to query
+
+    Returns
+    -------
+    str
+        Phase Encoding Direction as denoted in *in_file*`s header.
+    """
+    import subprocess
+
+    return (
+        subprocess.check_output(
+            ["mrinfo", str(in_file), "-property", "PhaseEncodingDirection"]
+        )
+        .decode("utf-8")
+        .replace("\n", "")
+    )
+
+
 def check_opposite_phase_encoding(layout: BIDSLayout, fmap: list, dwi: list):
     """
     Checks whether to extract mean B0 image from DWI series and use it for SDC.
@@ -79,25 +105,6 @@ def check_opposite_phase_encoding(layout: BIDSLayout, fmap: list, dwi: list):
         extract_b0 = False
         run_sdc = False
     return extract_b0, run_sdc
-
-
-def return_files_as_list(file_1: str, file_2: str) -> list:
-    """
-    A simple function to combine two files to a list
-
-    Parameters
-    ----------
-    file_1 : str
-        First file
-    file_2 : str
-        Second file
-
-    Returns
-    -------
-    list
-        List of both files
-    """
-    return [file_1, file_2]
 
 
 def get_relevant_files(session_data: dict):

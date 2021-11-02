@@ -1,0 +1,70 @@
+{
+    "groups": [
+        {
+            "name": "Group_00001",
+            "procs": [
+                0,
+                1,
+                2,
+                3,
+                4
+            ],
+            "total": 5
+        }
+    ],
+    "links": [
+        {
+            "source": 3,
+            "target": 4,
+            "value": 1
+        },
+        {
+            "source": 2,
+            "target": 3,
+            "value": 1
+        },
+        {
+            "source": 0,
+            "target": 1,
+            "value": 1
+        },
+        {
+            "source": 1,
+            "target": 2,
+            "value": 1
+        }
+    ],
+    "maxN": 5,
+    "nodes": [
+        {
+            "group": 1,
+            "name": "0_sub-242_ses-202104251808_grabber",
+            "report": "/tmp/tmpvix59fei/test/dwi_conversion/sub-242_ses-202104251808_grabber/_report/report.rst",
+            "result": "/tmp/tmpvix59fei/test/dwi_conversion/sub-242_ses-202104251808_grabber/result_sub-242_ses-202104251808_grabber.pklz"
+        },
+        {
+            "group": 1,
+            "name": "1_map_files",
+            "report": "/tmp/tmp67e8ta2c/test/dwi_conversion/map_files/_report/report.rst",
+            "result": "/tmp/tmp67e8ta2c/test/dwi_conversion/map_files/result_map_files.pklz"
+        },
+        {
+            "group": 1,
+            "name": "2_parse_dict",
+            "report": "/tmp/tmprc66c5fk/test/dwi_conversion/parse_dict/_report/report.rst",
+            "result": "/tmp/tmprc66c5fk/test/dwi_conversion/parse_dict/result_parse_dict.pklz"
+        },
+        {
+            "group": 1,
+            "name": "3_mif_conversion",
+            "report": "/tmp/tmp4z45tyr9/test/dwi_conversion/mif_conversion/_report/report.rst",
+            "result": "/tmp/tmp4z45tyr9/test/dwi_conversion/mif_conversion/result_mif_conversion.pklz"
+        },
+        {
+            "group": 1,
+            "name": "4_sinker",
+            "report": "/tmp/tmpwqlduprf/test/sinker/_report/report.rst",
+            "result": "/tmp/tmpwqlduprf/test/sinker/result_sinker.pklz"
+        }
+    ]
+}
