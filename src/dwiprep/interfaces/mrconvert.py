@@ -1,5 +1,7 @@
 from nipype.interfaces import mrtrix3 as mrt
-import os
+from nipype import Node, Function
+from typing import Tuple
+from pathlib import Path
 
 KWARGS_BY_FILE_TYPES = {
     "nifti": "in_file",
@@ -7,6 +9,40 @@ KWARGS_BY_FILE_TYPES = {
     "bvec": "in_bvec",
     "json": "json_import",
 }
+
+MAP_KWARGS_TO_SUFFIXES = {
+    "json_import": ["json"],
+    "in_bval": ["bval"],
+    "in_bvec": ["bvec"],
+    "in_file": ["nii", "nii.gz"],
+}
+
+
+def map_list_to_kwargs(
+    file_names: list, mapping: dict = MAP_KWARGS_TO_SUFFIXES
+):
+    """
+    Maps a list of files to their corresponding *mrconvert* inputs kwargs.
+
+    Parameters
+    ----------
+    file_names : list
+        A list of existing files.
+
+    Returns
+    -------
+    Tuple[str, str, str, str]
+        Four sorted outputs: *in_file*,*json*,*bvec*,*bval*
+    """
+
+    out_dict = {}
+    for file_name in file_names:
+        suffixes = Path(file_name).suffixes
+        suffix = "".join(suffixes).lstrip(".")
+        for key, val in mapping.items():
+            if suffix in val:
+                out_dict[key] = file_name
+    return out_dict
 
 
 def mrconvert(kwargs: dict) -> mrt.MRConvert:

@@ -16,7 +16,6 @@ from dwiprep.workflows.dmri.utils.utils import (
     OUTPUT_PATTERNS,
     OUTPUT_ENTITIES,
     infer_phase_encoding_direction,
-    get_data_grabber,
 )
 from dwiprep.interfaces.mrconvert import (
     mrconvert_map_types_to_kwargs,

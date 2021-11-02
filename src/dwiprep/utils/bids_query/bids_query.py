@@ -130,8 +130,8 @@ class BidsQuery:
         queries = {
             "dwi": {**self.DWI_QUERY, **dwi_identifier},
             "fmap": {**self.FMAP_QUERY, **fmap_identifier},
-            "t1w": {**self.T1W_QUERY, **t1w_identifier},
-            "t2w": {**self.T2W_QUERY, **t2w_identifier},
+            "T1w": {**self.T1W_QUERY, **t1w_identifier},
+            "T2w": {**self.T2W_QUERY, **t2w_identifier},
         }
         return queries
 

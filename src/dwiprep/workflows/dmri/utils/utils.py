@@ -21,16 +21,6 @@ STARTING_TEMPLATES = {
 }
 
 
-def get_data_grabber():
-    datagrabber = DataGrabber(
-        infields=["subject_id"], outfields=["dwi", "fmap"]
-    )
-    datagrabber.inputs.template = "*"
-    datagrabber.inputs.sort_filelist = True
-    datagrabber.inputs.field_template = STARTING_TEMPLATES
-    return datagrabber
-
-
 def infer_phase_encoding_direction(
     layout: BIDSLayout, file_name: Union[Path, str]
 ) -> str:
@@ -57,7 +47,57 @@ def infer_phase_encoding_direction(
     return bids_file.get_metadata().get("PhaseEncodingDirection")
 
 
+def check_opposite_phase_encoding(layout: BIDSLayout, fmap: list, dwi: list):
+    """
+    Checks whether to extract mean B0 image from DWI series and use it for SDC.
 
+    Parameters
+    ----------
+    layout : BIDSLayout
+        BIDSLayout instance describing a valid dataset
+    fmap : list
+        List of files that are associated with the fieldmap.
+    dwi : list
+        List of files that are associated with the DWI series.
+
+    Returns
+    -------
+    bool
+        Whether to extract B0 image and run SDC.
+    """
+    extract_b0 = True
+    run_sdc = True
+    fmap = [f for f in fmap if ".nii" in Path(f).name]
+    dwi = [f for f in dwi if ".nii" in Path(f).name]
+    fmap_directions = [infer_phase_encoding_direction(layout, f) for f in fmap]
+
+    if len(set(fmap_directions)) > 1:
+        extract_b0 = False
+
+    dwi_directions = [infer_phase_encoding_direction(layout, f) for f in dwi]
+    if len(set(dwi_directions + fmap_directions)) < 2:
+        extract_b0 = False
+        run_sdc = False
+    return extract_b0, run_sdc
+
+
+def return_files_as_list(file_1: str, file_2: str) -> list:
+    """
+    A simple function to combine two files to a list
+
+    Parameters
+    ----------
+    file_1 : str
+        First file
+    file_2 : str
+        Second file
+
+    Returns
+    -------
+    list
+        List of both files
+    """
+    return [file_1, file_2]
 
 
 def get_relevant_files(session_data: dict):
