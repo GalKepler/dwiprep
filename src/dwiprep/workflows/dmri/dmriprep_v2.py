@@ -49,6 +49,8 @@ class DmriPrep:
         "dwi": BASIC_MRCONVERT_INPUTS + DWI_MRCONVERT_INPUTS,
         "fmap": BASIC_MRCONVERT_INPUTS,
     }
+    #: Output directory name
+    OUTPUT_NAME = "dmriprep"
 
     def __init__(
         self,
@@ -60,7 +62,7 @@ class DmriPrep:
         """[summary]"""
         self.participant_label = participant_label
         self.bids_query = bids_query
-        self.destination = destination
+        self.destination = Path(destination) / self.OUTPUT_NAME
         self.work_dir = self.validate_work_dir(work_dir)
 
     def validate_work_dir(self, work_dir: str = None):
@@ -80,7 +82,7 @@ class DmriPrep:
         return (
             work_dir
             if work_dir is not None
-            else str(Path(self.destination) / "work")
+            else str(Path(self.destination).parent / "work")
         )
 
     def get_sessions(self):
@@ -262,20 +264,35 @@ class DmriPrep:
         Workflow
             An instanciated workflow for preprocessing of specific session.
         """
+        work_dir, destination = self.set_destination(session)
         inputnode = self.build_data_grabber(session)
         conversion_wf = self.init_conversion_wf(inputnode)
         session_data = self.get_session_data(session)
+        dwi, fmap = [session_data.get(key)[0] for key in ["dwi", "fmap"]]
         wf = init_preprocess_wf(
             self.bids_query.bids_dir,
             self.destination,
-            session_data.get("dwi")[0],
-            session_data.get("fmap")[0],
+            dwi,
+            fmap,
         )
 
-        wf = connect_conversion_to_wf(conversion_wf, wf, sinker)
-        wf = connect_tensor_wf(wf, sinker)
-        wf.base_dir = base_dir
+        wf = connect_conversion_to_wf(conversion_wf, wf)
+        wf = connect_tensor_wf(
+            self.bids_query.bids_dir, self.destination, dwi, wf
+        )
+        wf.base_dir = work_dir
         return wf
+
+    def set_destination(self, session: str = None):
+        base_directory = Path(self.work_dir) / f"sub-{self.participant_label}"
+        output_directory = (
+            Path(self.destination) / f"sub-{self.participant_label}"
+        )
+        if session:
+            base_directory = base_directory / f"ses-{session}"
+
+            output_directory = output_directory / f"ses-{session}"
+        return base_directory, output_directory
 
     def start_data_sink(self, session: str = None):
         """

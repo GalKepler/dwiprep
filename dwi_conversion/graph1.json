@@ -1,0 +1,58 @@
+{
+    "groups": [
+        {
+            "name": "Group_00001",
+            "procs": [
+                0,
+                1,
+                2,
+                3
+            ],
+            "total": 4
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 1,
+            "value": 1
+        },
+        {
+            "source": 1,
+            "target": 2,
+            "value": 1
+        },
+        {
+            "source": 2,
+            "target": 3,
+            "value": 1
+        }
+    ],
+    "maxN": 4,
+    "nodes": [
+        {
+            "group": 1,
+            "name": "0_sub-242_ses-202104251808_grabber",
+            "report": "/tmp/tmpt0xykher/sub-242_ses-202104251808_grabber/_report/report.rst",
+            "result": "/tmp/tmpt0xykher/sub-242_ses-202104251808_grabber/result_sub-242_ses-202104251808_grabber.pklz"
+        },
+        {
+            "group": 1,
+            "name": "1_map_files",
+            "report": "/tmp/tmp9t_zikqp/dwi_conversion/map_files/_report/report.rst",
+            "result": "/tmp/tmp9t_zikqp/dwi_conversion/map_files/result_map_files.pklz"
+        },
+        {
+            "group": 1,
+            "name": "2_parse_dict",
+            "report": "/tmp/tmpxygbnhod/dwi_conversion/parse_dict/_report/report.rst",
+            "result": "/tmp/tmpxygbnhod/dwi_conversion/parse_dict/result_parse_dict.pklz"
+        },
+        {
+            "group": 1,
+            "name": "3_mif_conversion",
+            "report": "/tmp/tmpcrxsgg7j/dwi_conversion/mif_conversion/_report/report.rst",
+            "result": "/tmp/tmpcrxsgg7j/dwi_conversion/mif_conversion/result_mif_conversion.pklz"
+        }
+    ]
+}

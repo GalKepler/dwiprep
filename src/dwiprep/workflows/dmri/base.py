@@ -251,17 +251,16 @@ def build_output_path(
     base_entities = layout.parse_file_entities(source)
     target_entities = base_entities.copy()
     for key, val in entities.items():
-        entities[key] = val
-    output = str(
-        Path(destination)
-        / layout.build_path(
-            target_entities,
-            path_patterns=OUTPUT_PATTERNS,
-            validate=False,
-            absolute_paths=False,
-        )
+        target_entities[key] = val
+    output = Path(destination) / layout.build_path(
+        target_entities,
+        path_patterns=OUTPUT_PATTERNS,
+        validate=False,
+        absolute_paths=False,
     )
-    return output
+    output.parent.mkdir(exist_ok=True, parents=True)
+
+    return str(output)
 
 
 def make_node(bids_dir, destination, source, interface, kwargs, name):
@@ -379,7 +378,8 @@ def init_preprocess_wf(
 
 
 def connect_conversion_to_wf(
-    conversion_wfs: dict, preproc_wf: pe.Workflow, sinker: Node
+    conversion_wfs: dict,
+    preproc_wf: pe.Workflow,
 ):
     wf = pe.Workflow(name="cleaning")
     dwi_wf = conversion_wfs.get("dwi")
@@ -391,7 +391,7 @@ def connect_conversion_to_wf(
                 preproc_wf,
                 [("mif_conversion.out_file", "dwiextract.in_file")],
             ),
-            (dwi_wf, sinker, [("mif_conversion.out_file", "DWI")]),
+            # (dwi_wf, sinker, [("mif_conversion.out_file", "DWI")]),
             (
                 dwi_wf,
                 preproc_wf,
@@ -402,22 +402,40 @@ def connect_conversion_to_wf(
                 preproc_wf,
                 [("mif_conversion.out_file", "list_files.in2")],
             ),
-            (dwi_wf, sinker, [("mif_conversion.out_file", "fmap")]),
+            # (dwi_wf, sinker, [("mif_conversion.out_file", "fmap")]),
         ]
     )
     return wf
 
 
 def connect_tensor_wf(
+    bids_dir: str,
+    destination: str,
+    dwi: str,
     preproc_wf: pe.Workflow,
-    sinker: Node,
     dwi2tensor_kwargs: dict = DWI2TENSOR_KWARGS,
     tensor2metrics_kwargs: dict = TENSOR2METRICS_KWARGS,
 ):
-    dwi2tensor = Node(mrt.FitTensor(**dwi2tensor_kwargs), name="fit_tensor")
-    tensor2metrics = Node(
-        mrt.TensorMetrics(**tensor2metrics_kwargs), name="compute_metrics"
+    dwi2tensor = make_node(
+        bids_dir,
+        destination,
+        dwi,
+        mrt.FitTensor,
+        dwi2tensor_kwargs,
+        "dwi2tensor",
     )
+    # dwi2tensor = Node(mrt.FitTensor(**dwi2tensor_kwargs), name="fit_tensor")
+    tensor2metrics = make_node(
+        bids_dir,
+        destination,
+        dwi,
+        mrt.TensorMetrics,
+        tensor2metrics_kwargs,
+        "tensor2metrics",
+    )
+    # tensor2metrics = Node(
+    #     mrt.TensorMetrics(**tensor2metrics_kwargs), name="compute_metrics"
+    # )
 
     wf = pe.Workflow(name="tensor_estimation")
     wf.connect(
@@ -427,11 +445,11 @@ def connect_tensor_wf(
                 dwi2tensor,
                 [("preprocess.biascorrect.out_file", "in_file")],
             ),
-            (
-                dwi2tensor,
-                sinker,
-                [("out_file", "tensor")],
-            ),
+            # (
+            #     dwi2tensor,
+            #     sinker,
+            #     [("out_file", "tensor")],
+            # ),
             (dwi2tensor, tensor2metrics, [("out_file", "in_file")]),
         ],
     )
