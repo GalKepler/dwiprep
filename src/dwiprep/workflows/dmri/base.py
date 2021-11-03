@@ -447,12 +447,12 @@ def build_backbone(
             (
                 conversion_wf,
                 preprocess_wf,
-                ("dwi_conversion.out_file", "dwidenoise.in_file"),
+                [("dwi_conversion.out_file", "dwidenoise.in_file")],
             ),
             (
                 merge_node,
                 preprocess_wf,
-                ("out", "mrcat.in_files"),
+                [("out", "mrcat.in_files")],
             ),
         ]
     )
