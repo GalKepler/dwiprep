@@ -263,7 +263,7 @@ class BidsQuery:
         """
         associations = self.get_associated(nifti)
         if associations:
-            return self.parse_associated_files(associations) 
+            return self.parse_associated_files(associations)
 
     def validate_file(self, rules: dict, file_name: dict):
         """

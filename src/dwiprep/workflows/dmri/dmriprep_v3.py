@@ -11,6 +11,7 @@ from dwiprep.workflows.dmri.base import (
     get_inputnode,
     build_conversion_nodes,
     generate_conversion_workflow,
+    build_backbone,
 )
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 from dwiprep.workflows.dmri.utils.utils import (
@@ -223,3 +224,4 @@ class DmriPrep:
             run_data["dwi"] = dwi_file
             inputnode = self.data_to_input_node(run_data, session)
             conversion_wf = generate_conversion_workflow(inputnode, run_data)
+            cleaning_wf = build_backbone(conversion_wf)
