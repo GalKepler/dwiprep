@@ -3,7 +3,7 @@ Definition of the data collection and validation functions used by the DWIprep
 preprocessing workflow.
 """
 from pathlib import Path
-from typing import Union, Tuple
+from typing import Union
 
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile
@@ -16,6 +16,7 @@ from dwiprep.utils.bids_query.utils import (
     FILE_TYPES_BY_EXTENSIONS,
     FILE_EXTENSIONS,
     ENTITY_PATTERN,
+    rename_session_data_by_fieldmap,
 )
 
 
@@ -38,10 +39,10 @@ class BidsQuery:
     def __init__(
         self,
         bids_dir: Union[BIDSLayout, Path, str],
-        dwi_identifier: dict,
-        fmap_identifier: dict,
-        t1w_identifier: dict,
-        t2w_identifier: dict,
+        dwi_identifier: dict = {},
+        fmap_identifier: dict = {},
+        t1w_identifier: dict = {},
+        t2w_identifier: dict = {},
         participant_label: Union[str, list] = None,
         bids_validate: bool = True,
     ) -> None:
@@ -100,6 +101,24 @@ class BidsQuery:
         else:
             return self.layout.get(return_type="id", target="subject")
 
+    def get_sessions(self, subject: str):
+        """
+        Locates all relevant/available sessions for *subject*.
+
+        Parameters
+        ----------
+        subject : Union[str,list], optional
+            Either a string or a list of strings of subjects' ids., by default None
+
+        Returns
+        -------
+        list
+            A list of available sessions' ids.
+        """
+        return self.layout.get(
+            return_type="id", target="session", subject=subject
+        )
+
     def set_queries(
         self,
         dwi_identifier: dict,
@@ -130,8 +149,8 @@ class BidsQuery:
         queries = {
             "dwi": {**self.DWI_QUERY, **dwi_identifier},
             "fmap": {**self.FMAP_QUERY, **fmap_identifier},
-            "t1w": {**self.T1W_QUERY, **t1w_identifier},
-            "t2w": {**self.T2W_QUERY, **t2w_identifier},
+            "T1w": {**self.T1W_QUERY, **t1w_identifier},
+            "T2w": {**self.T2W_QUERY, **t2w_identifier},
         }
         return queries
 
@@ -150,33 +169,101 @@ class BidsQuery:
             layout = BIDSLayout(str(self.bids_dir), self.bids_validate)
         return layout
 
-    def collect_data(
-        self,
-    ) -> Tuple[dict, BIDSLayout, dict]:
+    def query_data(self, subject: str, session: str = None) -> dict:
         """
         Collects processing-relevant files from a BIDS dataset.
 
         Returns
         -------
-        tuple
+        dict
             Required preprocessing data
 
         """
-        subjects_data = {}
-        for subject in self.participant_labels:
-            subjects_data[subject] = {
-                dtype: sorted(
-                    self.layout.get(
-                        return_type="file",
-                        subject=subject,
-                        extension=self.FILE_EXTENSIONS,
-                        **query,
-                    )
+        base_queries = {
+            "return_type": "file",
+            "subject": subject,
+            "extension": self.FILE_EXTENSIONS,
+        }
+        if session:
+            base_queries["session"] = session
+        query = {
+            dtype: sorted(
+                self.layout.get(
+                    **base_queries,
+                    **query,
                 )
-                for dtype, query in self.queries.items()
-            }
+            )
+            for dtype, query in self.queries.items()
+        }
+        return query
 
-        return subjects_data
+    def collect_niftis(self, subject: str, session: str = None) -> dict:
+        """
+        Collect all NIfTIs related to *subject* and *session*
+
+        Parameters
+        ----------
+        subject : str
+            Subject identifier
+        session : str, optional
+            Session identifier, by default None
+
+        Returns
+        -------
+        dict
+            All NIfTIs related to *subject* and *session*
+        """
+        return rename_session_data_by_fieldmap(
+            self.layout, self.query_data(subject, session)
+        )
+
+    def collect_data(self, subject: str, session: str = None) -> dict:
+        """
+        Collects all data related to *subject* and *session*
+
+        Parameters
+        ----------
+        subject : str
+            Subject's identifier
+        session : str
+            Session identifier, by default None
+
+        Returns
+        -------
+        dict
+            All files related to *subject* and *session* by their corresponding suffixes
+        """
+        session_niftis = self.collect_niftis(subject, session)
+        session_data = {}
+        for key, nifti in session_niftis.items():
+            if nifti is None:
+                continue
+            if isinstance(nifti, list):
+                associated_files = [
+                    self.get_parsed_associations(nii) for nii in nifti
+                ]
+            else:
+                associated_files = self.get_parsed_associations(nifti)
+            session_data[key] = associated_files
+        return session_data
+
+    def get_parsed_associations(self, nifti: str) -> dict:
+        """
+        Collects all associations to *nifti* and mas them to corresponding suffixes.
+
+        Parameters
+        ---------
+        nifti : str
+            Path to NIfTI file
+
+        Returns
+        -------
+        dict
+            All files associated with *nifti* mapped by their corresponding suffixes.
+        """
+        associations = self.get_associated(nifti)
+        if associations:
+            return self.parse_associated_files(associations)
 
     def validate_file(self, rules: dict, file_name: dict):
         """
@@ -215,7 +302,7 @@ class BidsQuery:
         assoc_json = [
             j
             for j in bids_file.get_associations()
-            if j.entities.get("extension") == ".json"
+            if j.entities.get("extension").strip(".") == "json"
         ]
         return (
             assoc_json + assoc_json[0].get_associations()
@@ -248,17 +335,6 @@ class BidsQuery:
             if file_type:
                 parsed_files[file_type[0]] = file_name.path
         return parsed_files
-
-    @property
-    def subjects_data(self) -> dict:
-        """
-        Return subject's raw nifti files by their corresponding data types
-        Returns
-        -------
-        dict
-            subject's raw nifti files by their corresponding data types
-        """
-        return self.collect_data()
 
     @property
     def layout(self) -> BIDSLayout:

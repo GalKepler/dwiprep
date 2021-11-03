@@ -1,0 +1,111 @@
+{
+    "groups": [
+        {
+            "name": "Group_00001",
+            "procs": [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+            ],
+            "total": 8
+        }
+    ],
+    "links": [
+        {
+            "source": 0,
+            "target": 2,
+            "value": 1
+        },
+        {
+            "source": 2,
+            "target": 4,
+            "value": 1
+        },
+        {
+            "source": 4,
+            "target": 5,
+            "value": 1
+        },
+        {
+            "source": 5,
+            "target": 6,
+            "value": 1
+        },
+        {
+            "source": 1,
+            "target": 6,
+            "value": 1
+        },
+        {
+            "source": 3,
+            "target": 6,
+            "value": 1
+        },
+        {
+            "source": 1,
+            "target": 3,
+            "value": 1
+        },
+        {
+            "source": 6,
+            "target": 7,
+            "value": 1
+        }
+    ],
+    "maxN": 8,
+    "nodes": [
+        {
+            "group": 1,
+            "name": "0_dwiextract",
+            "report": "/tmp/tmpaican1na/preprocess/dwiextract/_report/report.rst",
+            "result": "/tmp/tmpaican1na/preprocess/dwiextract/result_dwiextract.pklz"
+        },
+        {
+            "group": 1,
+            "name": "1_dwidenoise",
+            "report": "/tmp/tmpek8oxqra/preprocess/dwidenoise/_report/report.rst",
+            "result": "/tmp/tmpek8oxqra/preprocess/dwidenoise/result_dwidenoise.pklz"
+        },
+        {
+            "group": 1,
+            "name": "2_mrmath",
+            "report": "/tmp/tmpkhsct9qw/preprocess/mrmath/_report/report.rst",
+            "result": "/tmp/tmpkhsct9qw/preprocess/mrmath/result_mrmath.pklz"
+        },
+        {
+            "group": 1,
+            "name": "3_infer_pe",
+            "report": "/tmp/tmpzmnb5l7c/preprocess/infer_pe/_report/report.rst",
+            "result": "/tmp/tmpzmnb5l7c/preprocess/infer_pe/result_infer_pe.pklz"
+        },
+        {
+            "group": 1,
+            "name": "4_list_files",
+            "report": "/tmp/tmps1gtr4nj/preprocess/list_files/_report/report.rst",
+            "result": "/tmp/tmps1gtr4nj/preprocess/list_files/result_list_files.pklz"
+        },
+        {
+            "group": 1,
+            "name": "5_mrcat",
+            "report": "/tmp/tmp6hw0mde4/preprocess/mrcat/_report/report.rst",
+            "result": "/tmp/tmp6hw0mde4/preprocess/mrcat/result_mrcat.pklz"
+        },
+        {
+            "group": 1,
+            "name": "6_dwifslpreproc",
+            "report": "/tmp/tmpey_nm506/preprocess/dwifslpreproc/_report/report.rst",
+            "result": "/tmp/tmpey_nm506/preprocess/dwifslpreproc/result_dwifslpreproc.pklz"
+        },
+        {
+            "group": 1,
+            "name": "7_biascorrect",
+            "report": "/tmp/tmplhn1kk4b/preprocess/biascorrect/_report/report.rst",
+            "result": "/tmp/tmplhn1kk4b/preprocess/biascorrect/result_biascorrect.pklz"
+        }
+    ]
+}
