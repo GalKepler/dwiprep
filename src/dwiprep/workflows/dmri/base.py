@@ -360,10 +360,59 @@ def build_epi_ref_wf(
 
 def add_phasediff_node(main_workflow: Workflow):
     inputnode = main_workflow.get_node("conversion.inputnode")
+    merge_node = pe.Node(Merge(numinputs=2), name="merge_files")
     fmap_ap, fmap_pa = [
         getattr(inputnode.inputs, key, None) for key in ["fmap_ap", "fmap_pa"]
     ]
-    # if fmap_ap and fmap_pa:
+    if fmap_ap and fmap_pa:
+        connection = [
+            (
+                main_workflow.get_node("conversion"),
+                merge_node,
+                [("fmap_ap_conversion.out_file", "in1")],
+            ),
+            (
+                main_workflow.get_node("conversion"),
+                merge_node,
+                [("fmap_pa_conversion.out_file", "in2")],
+            ),
+        ]
+        fmap = "fmap_pa"
+    else:
+        if fmap_ap:
+            connection = [
+                (
+                    main_workflow.get_node("conversion"),
+                    merge_node,
+                    [("fmap_ap_conversion.out_file", "in1")],
+                ),
+                (
+                    main_workflow.get_node("EPI_ref"),
+                    merge_node,
+                    [("mrmath.out_file", "in2")],
+                ),
+            ]
+            fmap = "fmap_ap"
+        elif fmap_pa:
+            connection = [
+                (
+                    main_workflow.get_node("conversion"),
+                    merge_node,
+                    [("fmap_pa_conversion.out_file", "in1")],
+                ),
+                (
+                    main_workflow.get_node("EPI_ref"),
+                    merge_node,
+                    [("mrmath.out_file", "in2")],
+                ),
+            ]
+            fmap = "fmap_pa"
+        else:
+            raise NotImplementedError(
+                "Currently fieldmap-based SDC is mandatory and thus requires at least on opposite single-volume EPI image."
+            )
+    main_workflow.connect(connection)
+    return fmap, merge_node
 
 
 def build_backbone(
@@ -384,65 +433,85 @@ def build_backbone(
         epi_ref_wf,
         [("dwi_conversion.out_file", "dwiextract.in_file")],
     )
-
-
-#     if wf.get_node("inputnode")
+    fmap, merge_node = add_phasediff_node(main_workflow)
+    preprocess_wf = init_preprocess_wf(
+        inputnode,
+        fmap,
+        mrcat_kwargs,
+        dwidenoise_kwargs,
+        dwifslpreproc_kwargs,
+        dwibiascorrect_kwargs,
+    )
+    main_workflow.connect(
+        [
+            (
+                conversion_wf,
+                preprocess_wf,
+                ("dwi_conversion.out_file", "dwidenoise.in_file"),
+            ),
+            (
+                merge_node,
+                preprocess_wf,
+                ("out", "mrcat.in_files"),
+            ),
+        ]
+    )
 
 
 def init_preprocess_wf(
-    bids_dir: str,
-    destination: str,
-    dwi: str,
+    inputnode: pe.Node,
     fmap: str,
-    dwiextract_kwargs: dict = DWIEXTRACT_KWARGS,
-    mrmath_kwargs: dict = MRMATH_KWARGS,
     mrcat_kwargs: dict = MRCAT_KWARGS,
     dwidenoise_kwargs: dict = DWIDENOISE_KWARGS,
     dwifslpreproc_kwargs: dict = DWIFSLPREPROC_KWARGS,
     dwibiascorrect_kwargs: dict = DWIBIASCORRECT_KWARGS,
 ):
     wf = pe.Workflow(name="preprocess")
-    dwiextract = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.DWIExtract,
-        dwiextract_kwargs,
-        "dwiextract",
-    )
-    # dwiextract = pe.Node(
-    #     mrt.DWIExtract(**dwiextract_kwargs), name="dwiextract"
-    # )
-    mrmath = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.MRMath,
-        mrmath_kwargs,
-        "mrmath",
-    )
-    # mrmath = pe.Node(mrt.MRMath(**mrmath_kwargs), name="mrmath")
-    list_files = pe.Node(Merge(numinputs=2), name="list_files")
-    mrcat = make_node(
-        bids_dir,
-        destination,
+    wf.base_dir = inputnode.inputs.work_dir
+
+    connections = []
+
+    # mrcat
+    mrcat = pe.Node(mrt.MRCat(**mrcat_kwargs.get("inputs")), name="mrcat")
+    mrcat_outputs_connection = add_output_nodes(
+        inputnode,
         fmap,
-        mrt.MRCat,
-        mrcat_kwargs,
+        mrcat_kwargs.get("outputs"),
+        mrcat,
         "mrcat",
     )
-    # mrcat = pe.Node(mrt.MRCat(**mrcat_kwargs), name="mrcat")
-    dwidenoise = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.DWIDenoise,
-        dwidenoise_kwargs,
+    for connection in mrcat_outputs_connection:
+        connections.append(connection)
+
+    # dwidenoise
+    dwidenoise = pe.Node(
+        mrt.DWIDenoise(**dwidenoise_kwargs.get("inputs")), name="dwidenoise"
+    )
+    dwidenoise_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        dwidenoise_kwargs.get("outputs"),
+        dwidenoise,
         "dwidenoise",
     )
-    # dwidenoise = pe.Node(
-    #     mrt.DWIDenoise(**dwidenoise_kwargs), name="dwidenoise"
-    # )
+    for connection in dwidenoise_outputs_connection:
+        connections.append(connection)
+
+    # dwifslpreproc
+    dwifslpreproc = pe.Node(
+        mrt.DWIPreproc(**dwifslpreproc_kwargs.get("inputs")),
+        name="dwifslpreproc",
+    )
+    dwifslpreproc_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        dwifslpreproc_kwargs.get("outputs"),
+        dwifslpreproc,
+        "dwifslpreproc",
+    )
+    for connection in dwifslpreproc_outputs_connection:
+        connections.append(connection)
+
     infer_pe = pe.Node(
         Function(
             input_names=["in_file"],
@@ -451,46 +520,31 @@ def init_preprocess_wf(
         ),
         name="infer_pe",
     )
-    dwifslpreproc = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.DWIPreproc,
-        dwifslpreproc_kwargs,
-        "dwifslpreproc",
+
+    # biascorrect
+    biascorrect = pe.Node(
+        mrt.DWIBiasCorrect(**dwibiascorrect_kwargs.get("inputs")),
+        name="biascorrect",
     )
-    # dwifslpreproc = pe.Node(
-    #     mrt.DWIPreproc(**dwifslpreproc_kwargs), name="dwifslpreproc"
-    # )
-    biascorrect = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.DWIBiasCorrect,
-        dwibiascorrect_kwargs,
+    biascorrect_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        dwibiascorrect_kwargs.get("outputs"),
+        biascorrect,
         "biascorrect",
     )
-    # biascorrect = pe.Node(
-    #     mrt.DWIBiasCorrect(**dwibiascorrect_kwargs), name="biascorrect"
-    # )
-    wf.connect(
-        [
-            (dwiextract, mrmath, [("out_file", "in_file")]),
-            # (dwiextract, sinker_node, [("out_file", "dwi_b0s")]),
-            # (mrmath, sinker_node, [("out_file", "mean_b0")]),
-            (mrmath, list_files, [("out_file", "in1")]),
-            (list_files, mrcat, [("out", "in_files")]),
-            # (mrcat, sinker_node, [("out_file", "phasediff")]),
-            (mrcat, dwifslpreproc, [("out_file", "in_epi")]),
-            (dwidenoise, dwifslpreproc, [("out_file", "in_file")]),
-            (dwidenoise, infer_pe, [("out_file", "in_file")]),
-            (infer_pe, dwifslpreproc, [("pe_dir", "pe_dir")]),
-            # (dwidenoise, sinker_node, [("out_file", "denoised")]),
-            # (dwifslpreproc, sinker_node, [("out_file", "SDC")]),
-            (dwifslpreproc, biascorrect, [("out_file", "in_file")]),
-            # (biascorrect, sinker_node, [("out_file", "biascorr")]),
-        ]
+    for connection in biascorrect_outputs_connection:
+        connections.append(connection)
+
+    connections.append(
+        (dwidenoise, infer_pe, [("out_file", "in_file")]),
     )
+    connections.append((infer_pe, dwifslpreproc, [("pe_dir", "pe_dir")]))
+    connections.append((dwidenoise, dwifslpreproc, [("out_file", "in_file")]))
+    connections.append((mrcat, dwifslpreproc, [("out_file", "in_epi")]))
+    connections.append((dwifslpreproc, biascorrect, [("out_file", "in_file")]))
+
+    wf.connect(connections)
     return wf
 
 
