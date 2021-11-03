@@ -429,9 +429,13 @@ def build_backbone(
     main_workflow.base_dir = inputnode.inputs.work_dir
     epi_ref_wf = build_epi_ref_wf(inputnode, dwiextract_kwargs, mrmath_kwargs)
     main_workflow.connect(
-        conversion_wf,
-        epi_ref_wf,
-        [("dwi_conversion.out_file", "dwiextract.in_file")],
+        [
+            (
+                conversion_wf,
+                epi_ref_wf,
+                [("dwi_conversion.out_file", "dwiextract.in_file")],
+            ),
+        ]
     )
     fmap, merge_node = add_phasediff_node(main_workflow)
     preprocess_wf = init_preprocess_wf(
@@ -456,6 +460,29 @@ def build_backbone(
             ),
         ]
     )
+    return main_workflow
+
+
+def connect_tensor_wf(
+    inputnode: pe.Node,
+    main_workflow: Workflow,
+    dwi2tensor_kwargs: dict = DWI2TENSOR_KWARGS,
+    tensor2metrics_kwargs: dict = TENSOR2METRICS_KWARGS,
+):
+    preproc_wf = main_workflow.get_node("preprocess")
+    tensor_wf = build_tensor_wf(
+        inputnode, dwi2tensor_kwargs, tensor2metrics_kwargs
+    )
+    main_workflow.connect(
+        [
+            (
+                preproc_wf,
+                tensor_wf,
+                [("biascorrect.out_file", "dwi2tensor.in_file")],
+            ),
+        ]
+    )
+    return main_workflow
 
 
 def init_preprocess_wf(
@@ -548,80 +575,45 @@ def init_preprocess_wf(
     return wf
 
 
-def connect_conversion_to_wf(
-    conversion_wfs: dict,
-    preproc_wf: pe.Workflow,
-):
-    wf = pe.Workflow(name="cleaning")
-    dwi_wf = conversion_wfs.get("dwi")
-    fmap_wf = conversion_wfs.get("fmap")
-    wf.connect(
-        [
-            (
-                dwi_wf,
-                preproc_wf,
-                [("mif_conversion.out_file", "dwiextract.in_file")],
-            ),
-            # (dwi_wf, sinker, [("mif_conversion.out_file", "DWI")]),
-            (
-                dwi_wf,
-                preproc_wf,
-                [("mif_conversion.out_file", "dwidenoise.in_file")],
-            ),
-            (
-                fmap_wf,
-                preproc_wf,
-                [("mif_conversion.out_file", "list_files.in2")],
-            ),
-            # (dwi_wf, sinker, [("mif_conversion.out_file", "fmap")]),
-        ]
-    )
-    return wf
-
-
-def connect_tensor_wf(
-    bids_dir: str,
-    destination: str,
-    dwi: str,
-    preproc_wf: pe.Workflow,
+def build_tensor_wf(
+    inputnode: pe.Node,
     dwi2tensor_kwargs: dict = DWI2TENSOR_KWARGS,
     tensor2metrics_kwargs: dict = TENSOR2METRICS_KWARGS,
 ):
-    dwi2tensor = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.FitTensor,
-        dwi2tensor_kwargs,
+    wf = pe.Workflow(name="tesnor_estimation")
+    wf.base_dir = inputnode.inputs.work_dir
+
+    connections = []
+
+    # dwi2tensor
+    dwi2tensor = pe.Node(
+        mrt.FitTensor(**dwi2tensor_kwargs.get("inputs")), name="dwi2tensor"
+    )
+    dwi2tensor_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        dwi2tensor_kwargs.get("outputs"),
+        dwi2tensor,
         "dwi2tensor",
     )
-    # dwi2tensor = Node(mrt.FitTensor(**dwi2tensor_kwargs), name="fit_tensor")
-    tensor2metrics = make_node(
-        bids_dir,
-        destination,
-        dwi,
-        mrt.TensorMetrics,
-        tensor2metrics_kwargs,
+    for connection in dwi2tensor_outputs_connection:
+        connections.append(connection)
+
+    # tensor2metrics
+    tensor2metrics = pe.Node(
+        mrt.TensorMetrics(**tensor2metrics_kwargs.get("inputs")),
+        name="tensor2metrics",
+    )
+    tensor2metrics_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        tensor2metrics_kwargs.get("outputs"),
+        tensor2metrics,
         "tensor2metrics",
     )
-    # tensor2metrics = Node(
-    #     mrt.TensorMetrics(**tensor2metrics_kwargs), name="compute_metrics"
-    # )
+    for connection in tensor2metrics_outputs_connection:
+        connections.append(connection)
 
-    wf = pe.Workflow(name="tensor_estimation")
-    wf.connect(
-        [
-            (
-                preproc_wf,
-                dwi2tensor,
-                [("preprocess.biascorrect.out_file", "in_file")],
-            ),
-            # (
-            #     dwi2tensor,
-            #     sinker,
-            #     [("out_file", "tensor")],
-            # ),
-            (dwi2tensor, tensor2metrics, [("out_file", "in_file")]),
-        ],
-    )
+    connections.append((dwi2tensor, tensor2metrics, [("out_file", "in_file")]))
+    wf.connect(connections)
     return wf
