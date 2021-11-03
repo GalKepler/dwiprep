@@ -101,6 +101,24 @@ class BidsQuery:
         else:
             return self.layout.get(return_type="id", target="subject")
 
+    def get_sessions(self, subject: str):
+        """
+        Locates all relevant/available sessions for *subject*.
+
+        Parameters
+        ----------
+        subject : Union[str,list], optional
+            Either a string or a list of strings of subjects' ids., by default None
+
+        Returns
+        -------
+        list
+            A list of available sessions' ids.
+        """
+        return self.layout.get(
+            return_type="id", target="session", subject=subject
+        )
+
     def set_queries(
         self,
         dwi_identifier: dict,
@@ -168,7 +186,7 @@ class BidsQuery:
         }
         if session:
             base_queries["session"] = session
-        return {
+        query = {
             dtype: sorted(
                 self.layout.get(
                     **base_queries,
@@ -177,6 +195,7 @@ class BidsQuery:
             )
             for dtype, query in self.queries.items()
         }
+        return query
 
     def collect_niftis(self, subject: str, session: str = None) -> dict:
         """
@@ -224,7 +243,7 @@ class BidsQuery:
                     self.get_parsed_associations(nii) for nii in nifti
                 ]
             else:
-                associated_files = [self.get_parsed_associations(nifti)]
+                associated_files = self.get_parsed_associations(nifti)
             session_data[key] = associated_files
         return session_data
 

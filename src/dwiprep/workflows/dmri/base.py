@@ -1,3 +1,4 @@
+from nipype.interfaces.mrtrix3.utils import MRConvert
 from nipype.interfaces.utility.base import IdentityInterface
 import nipype.pipeline.engine as pe
 from nipype import Function
@@ -6,7 +7,10 @@ import nipype.interfaces.mrtrix3 as mrt
 from nipype.interfaces.utility import Merge, IdentityInterface
 from nipype.pipeline.engine.workflows import Workflow
 from dwiprep.workflows.dmri.utils.utils import (
+    OUTPUT_PATTERNS,
     infer_phase_encoding_direction_mif,
+    get_output_path_node,
+    add_output_nodes,
 )
 from dwiprep.interfaces.mrconvert import map_list_to_kwargs, parse_dict_by_keys
 
@@ -145,13 +149,25 @@ TENSOR2METRICS_KWARGS = {
     },
 }
 
+MRCONVERT_KWARGS = {
+    "inputs": {"args": "-force"},
+    "outputs": {"out_file": {"description": "orig", "extension": "mif"}},
+}
+
 
 def get_inputnode():
     return pe.Node(
         IdentityInterface(
             fields=[
+                # participant's info
+                "participant_label",
+                "session_id",
+                # Execution info
+                "bids_dir",
+                "work_dir",
+                "destination",
                 # DWI
-                "dwi_file",
+                "dwi",
                 "in_bvec",
                 "in_bval",
                 "in_json",
@@ -166,94 +182,92 @@ def get_inputnode():
     )
 
 
-def init_datagrabber(
-    bids_dir: str,
-    participant_label: str,
-    queries: dict,
-    session: str = None,
+def build_single_conversion_node(data_type: str):
+    wf = Workflow(name=f"{data_type}_converter")
+
+    mrconvert_node = pe.Node(mrt.MRConvert(), name=f"mrconvert")
+    output_node = get_output_path_node()
+    wf.connect([(mrconvert_node, output_node, [("in_file", "source")])])
+
+
+def build_conversion_nodes(
+    inputnode: pe.Node,
+    run_data: dict,
+    mrconvert_kwargs: dict = MRCONVERT_KWARGS,
 ):
-    grabber = nio.BIDSDataGrabber(base_dir=bids_dir)
-    grabber.inputs.subject = participant_label
-    grabber.inputs.output_query = queries
-    name = f"sub-{participant_label}"
-    if session:
-        grabber.inputs.session = session
-        name = f"{name}_ses-{session}"
-    return pe.Node(grabber, name=f"{name}_grabber")
+    nodes = {}
+    connectors = {}
+    for key in ["dwi", "fmap_ap", "fmap_pa"]:
+        if not run_data.get(key):
+            continue
+        target_node = pe.Node(
+            mrt.MRConvert(**mrconvert_kwargs.get("inputs")),
+            name=f"{key}_conversion",
+        )
+        nodes[key] = target_node
+        connectors[key] = add_output_nodes(
+            inputnode, key, mrconvert_kwargs.get("outputs"), target_node, key
+        )
+    return nodes, connectors
 
 
-def get_conversion_connector(data_type: str):
-    connector = [("in_file", "in_file"), ("json_import", "json_import")]
-    if data_type in ["dwi"]:
-        connector += [("in_bvec", "in_bvec"), ("in_bval", "in_bval")]
-    return connector
-
-
-def init_mrconvert_wf(
-    data_type: str, datagrabber: pe.Node, mapping: dict
-) -> pe.Node:
-    """
-    Instanciates a *MRConvert*-based node with predefined kwargs
-
-    Parameters
-    ----------
-    data_type : str
-        Data type to be converted
-    kwargs : dict
-        Keyword arguments for MRConvert
-
-    Returns
-    -------
-    pe.Node
-        A pe.Node instance with predefined kwargs.
-    """
-    mapping_node = pe.Node(
-        Function(
-            input_names=["file_names", "mapping"],
-            output_names=["out_dict"],
-            function=map_list_to_kwargs,
-        ),
-        name="map_files",
+def generate_conversion_workflow(
+    inputnode: pe.Node,
+    run_data: dict,
+    mrconvert_kwargs: dict = MRCONVERT_KWARGS,
+):
+    wf = Workflow(name="conversion")
+    nodes, output_connectors = build_conversion_nodes(
+        inputnode, run_data, mrconvert_kwargs
     )
-    mapping_node.inputs.mapping = mapping
-    kwarg_node = pe.Node(
-        Function(
-            input_names=["kwargs"],
-            output_names=["in_file", "json_import", "in_bvec", "in_bval"],
-            function=parse_dict_by_keys,
-        ),
-        name="parse_dict",
-    )
-    conversion = pe.Node(mrt.MRConvert(), name=f"mif_conversion")
-    wf = pe.Workflow(name=f"{data_type}_conversion")
-    wf.connect(
-        [
-            (datagrabber, mapping_node, [(data_type, "file_names")]),
-            (mapping_node, kwarg_node, [("out_dict", "kwargs")]),
-            (kwarg_node, conversion, get_conversion_connector(data_type)),
-        ]
-    )
+    dwi_node, fmap_ap_node, fmap_pa_node = [
+        nodes.get(key) for key in ["dwi", "fmap_ap", "fmap_pa"]
+    ]
+
+    base_connector = [
+        (
+            inputnode,
+            dwi_node,
+            [
+                ("dwi", "in_file"),
+                ("in_json", "json_import"),
+                ("in_bvec", "in_bvec"),
+                ("in_bval", "in_bval"),
+            ],
+        )
+    ]
+    for connector in output_connectors.get("dwi"):
+        base_connector.append(connector)
+    if fmap_pa_node:
+        base_connector.append(
+            (
+                inputnode,
+                fmap_pa_node,
+                [
+                    ("fmap_pa", "in_file"),
+                    ("fmap_pa_json", "json_import"),
+                ],
+            )
+        )
+        for connector in output_connectors.get("fmap_pa"):
+            base_connector.append(connector)
+    if fmap_ap_node:
+        base_connector.append(
+            (
+                inputnode,
+                fmap_ap_node,
+                [
+                    ("fmap_ap", "in_file"),
+                    ("fmap_ap_json", "json_import"),
+                ],
+            )
+        )
+        for connector in output_connectors.get("fmap_ap"):
+            base_connector.append(connector)
+    wf.connect(base_connector)
+    wf.base_dir = inputnode.inputs.work_dir
+    wf.write_graph(graph2use="colored")
     return wf
-
-
-def init_mrconvert_node(data_type: str, kwargs: dict) -> pe.Node:
-    """
-    Instanciates a *MRConvert*-based node with predefined kwargs
-
-    Parameters
-    ----------
-    data_type : str
-        Data type to be converted
-    kwargs : dict
-        Keyword arguments for MRConvert
-
-    Returns
-    -------
-    pe.Node
-        A pe.Node instance with predefined kwargs.
-    """
-
-    return pe.Node(mrt.MRConvert(**kwargs), name=f"{data_type}_mif_conversion")
 
 
 def get_output_path_node(name: str):
@@ -264,25 +278,6 @@ def get_output_path_node(name: str):
         ),
         name=name,
     )
-
-
-def add_output_nodes(
-    base_node: pe.Node, input_node: pe.Node, source: str, output_kwargs: dict
-):
-    connected_nodes = []
-    for key, value in output_kwargs.items():
-        output_node = get_output_path_node(f"{key}_node")
-        output_node.inputs.entities = value
-        connected_node = [(input_node, output_node, [(source, "source")])]
-        connected_node.append(
-            (
-                base_node,
-                output_node,
-                [("bids_dir", "bids_dir"), ("destination", "destination")],
-            ),
-        )
-        connected_nodes.append(connected_node)
-    return connected_nodes
 
 
 def build_output_path(
@@ -308,18 +303,8 @@ def build_output_path(
     return str(output)
 
 
-def make_node(bids_dir, destination, source, interface, kwargs, name):
-    interface = interface(**kwargs.get("inputs"))
-    node = pe.Node(interface, name=name)
-    for key, val in kwargs.get("outputs").items():
-        target = build_output_path(bids_dir, destination, source, val)
-        node.set_input(key, target)
-    return node
-
-
-def epi_ref_wf(
+def build_epi_ref_wf(
     inputnode: pe.Node,
-    conversion_node: Workflow,
     dwiextract_kwargs: dict = DWIEXTRACT_KWARGS,
     mrmath_kwargs: dict = MRMATH_KWARGS,
 ) -> Workflow:
@@ -336,47 +321,53 @@ def epi_ref_wf(
     Workflow
         EPI-reference generation workflow
     """
+    connections = []
     dwiextract = pe.Node(
-        mrt.DWIExtract(**dwiextract_kwargs), name="dwiextract"
+        mrt.DWIExtract(**dwiextract_kwargs.get("inputs")), name="dwiextract"
     )
-    # dwiextract_naming = get_output_
-    mrmath = pe.Node(mrt.MRMath(**mrmath_kwargs), name="mrmath")
+    dwiextract_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        dwiextract_kwargs.get("outputs"),
+        dwiextract,
+        "dwiextract",
+    )
+    for connection in dwiextract_outputs_connection:
+        connections.append(connection)
+    mrmath = pe.Node(mrt.MRMath(**mrmath_kwargs.get("inputs")), name="mrmath")
+    mrmath_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        mrmath_kwargs.get("outputs"),
+        mrmath,
+        "mrmath",
+    )
+    for connection in mrmath_outputs_connection:
+        connections.append(connection)
+    connections.append(
+        (
+            dwiextract,
+            mrmath,
+            [("out_file", "in_file")],
+        )
+    )
     wf = Workflow(name="EPI_ref")
-    wf.connect(
-        [
-            inputnode,
-            dwiextract_naming,
-            [
-                ("dwi_file", "source"),
-                ("bids_dir", "bids_dir"),
-                ("destination", "destination"),
-            ],
-            dwiextract_naming,
-            dwiextract,
-            [("out_file", "out_file")],
-            inputnode,
-            mrmath_naming,
-            [
-                ("dwi_file", "source"),
-                ("bids_dir", "bids_dir"),
-                ("destination", "destination"),
-            ],
-            mrmath_naming,
-            mrmath,
-            [("out_file", "out_file")],
-            conversion_node,
-            dwiextract,
-            [("dwi_conversion.out_file", "in_file")],
-            dwiextract,
-            mrmath,
-            ["out_file", "in_file"],
-        ]
-    )
+    wf.connect(connections)
+    wf.base_dir = inputnode.inputs.work_dir
+    wf.write_graph(graph2use="colored")
     return wf
 
 
+def add_phasediff_node(main_workflow: Workflow):
+    inputnode = main_workflow.get_node("conversion.inputnode")
+    fmap_ap, fmap_pa = [
+        getattr(inputnode.inputs, key, None) for key in ["fmap_ap", "fmap_pa"]
+    ]
+    # if fmap_ap and fmap_pa:
+
+
 def build_backbone(
-    wf: Workflow,
+    conversion_wf: Workflow,
     dwiextract_kwargs: dict = DWIEXTRACT_KWARGS,
     mrmath_kwargs: dict = MRMATH_KWARGS,
     mrcat_kwargs: dict = MRCAT_KWARGS,
@@ -384,10 +375,14 @@ def build_backbone(
     dwifslpreproc_kwargs: dict = DWIFSLPREPROC_KWARGS,
     dwibiascorrect_kwargs: dict = DWIBIASCORRECT_KWARGS,
 ) -> Workflow:
-    inputnode = wf.get_node("inputnode")
-    conversion_node = wf.get_node("conversion")
-    epi_ref_wf = epi_ref_wf(
-        inputnode, conversion_node, dwiextract_kwargs, mrmath_kwargs
+    main_workflow = Workflow(name="dMRIprep")
+    inputnode = conversion_wf.get_node("inputnode")
+    main_workflow.base_dir = inputnode.inputs.work_dir
+    epi_ref_wf = build_epi_ref_wf(inputnode, dwiextract_kwargs, mrmath_kwargs)
+    main_workflow.connect(
+        conversion_wf,
+        epi_ref_wf,
+        [("dwi_conversion.out_file", "dwiextract.in_file")],
     )
 
 

@@ -46,7 +46,7 @@ def infer_phase_encoding_direction(
     layout: BIDSLayout, file_name: Union[Path, str]
 ) -> str:
     """
-    Used *layout* to query the phase encoding direction used for *file_name*.
+    Used *layout* to query the phase encoding direction used for *file_name* in <AP,PA,etc.> format.
 
     Parameters
     ----------
@@ -60,12 +60,7 @@ def infer_phase_encoding_direction(
     str
         Phase encoding direction.
     """
-    bids_file = layout.get_file(file_name)
-    if not bids_file:
-        raise FileNotFoundError(
-            "A valid DWI series must be provided to infer phase encoding direction!"
-        )
-    return bids_file.get_metadata().get("PhaseEncodingDirection")
+    return layout.parse_file_entities(file_name).get("direction")
 
 
 def query_fieldmap(layout: BIDSLayout, fieldmap: list):

@@ -1,6 +1,8 @@
 from bids import BIDSLayout
 from typing import Union
 from pathlib import Path
+import nipype.pipeline.engine as pe
+from nipype import Workflow, Function
 
 MANDATORY_ENTITIES = ["dwi"]
 
@@ -24,7 +26,7 @@ def infer_phase_encoding_direction(
     layout: BIDSLayout, file_name: Union[Path, str]
 ) -> str:
     """
-    Used *layout* to query the phase encoding direction used for *file_name*.
+    Used *layout* to query the phase encoding direction used for *file_name* in <x,j,z> format.
 
     Parameters
     ----------
@@ -44,6 +46,65 @@ def infer_phase_encoding_direction(
             "A valid DWI series must be provided to infer phase encoding direction!"
         )
     return bids_file.get_metadata().get("PhaseEncodingDirection")
+
+
+def get_output_path_node(name: str):
+    return pe.Node(
+        Function(
+            input_names=["bids_dir", "destination", "source", "entities"],
+            output_names=["out_file"],
+            function=build_output_path,
+        ),
+        name=name,
+    )
+
+
+def add_output_nodes(
+    input_node: pe.Node,
+    source_key: str,
+    output_kwargs: dict,
+    target_node: pe.Node,
+    node_name: str,
+):
+    connected_nodes = []
+    for key, value in output_kwargs.items():
+        output_node = get_output_path_node(f"{node_name}_{key}_namer")
+        output_node.inputs.entities = value
+        connected_nodes.append(
+            (input_node, output_node, [(source_key, "source")])
+        )
+        connected_nodes.append(
+            (
+                input_node,
+                output_node,
+                [("bids_dir", "bids_dir"), ("destination", "destination")],
+            ),
+        )
+        connected_nodes.append((output_node, target_node, [("out_file", key)]))
+    return connected_nodes
+
+
+def build_output_path(
+    bids_dir: str, destination: str, source: str, entities: dict = {}
+):
+    OUTPUT_PATTERNS = "sub-{subject}/[ses-{session}/][{datatype}/]sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_space-{space}][_desc-{description}]_{suffix}.{extension}"
+    from bids import BIDSLayout
+    from pathlib import Path
+
+    layout = BIDSLayout(bids_dir)
+    base_entities = layout.parse_file_entities(source)
+    target_entities = base_entities.copy()
+    for key, val in entities.items():
+        target_entities[key] = val
+    output = Path(destination) / layout.build_path(
+        target_entities,
+        path_patterns=OUTPUT_PATTERNS,
+        validate=False,
+        absolute_paths=False,
+    )
+    output.parent.mkdir(exist_ok=True, parents=True)
+
+    return str(output)
 
 
 def infer_phase_encoding_direction_mif(in_file: str) -> str:
