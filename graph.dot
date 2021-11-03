@@ -1,0 +1,27 @@
+digraph conversion{
+  label="conversion";
+  conversion_inputnode[label="inputnode (utility)", style=filled, fillcolor="#FFFFC8"];
+  conversion_dwi_conversion[label="dwi_conversion (mrtrix3)", style=filled, fillcolor="#FFFFC8"];
+  conversion_dwi_out_file_node[label="dwi_out_file_node (utility)", style=filled, fillcolor="#FFFFC8"];
+  conversion_fmap_pa_conversion[label="fmap_pa_conversion (mrtrix3)", style=filled, fillcolor="#FFFFC8"];
+  conversion_fmap_pa_out_file_node[label="fmap_pa_out_file_node (utility)", style=filled, fillcolor="#FFFFC8"];
+  conversion_fmap_ap_conversion[label="fmap_ap_conversion (mrtrix3)", style=filled, fillcolor="#FFFFC8"];
+  conversion_fmap_ap_out_file_node[label="fmap_ap_out_file_node (utility)", style=filled, fillcolor="#FFFFC8"];
+  conversion_inputnode -> conversion_dwi_conversion;
+  conversion_inputnode -> conversion_dwi_conversion;
+  conversion_inputnode -> conversion_dwi_conversion;
+  conversion_inputnode -> conversion_dwi_conversion;
+  conversion_inputnode -> conversion_dwi_out_file_node;
+  conversion_inputnode -> conversion_dwi_out_file_node;
+  conversion_inputnode -> conversion_dwi_out_file_node;
+  conversion_inputnode -> conversion_fmap_pa_conversion;
+  conversion_inputnode -> conversion_fmap_pa_conversion;
+  conversion_inputnode -> conversion_fmap_pa_out_file_node;
+  conversion_inputnode -> conversion_fmap_pa_out_file_node;
+  conversion_inputnode -> conversion_fmap_pa_out_file_node;
+  conversion_inputnode -> conversion_fmap_ap_conversion;
+  conversion_inputnode -> conversion_fmap_ap_conversion;
+  conversion_inputnode -> conversion_fmap_ap_out_file_node;
+  conversion_inputnode -> conversion_fmap_ap_out_file_node;
+  conversion_inputnode -> conversion_fmap_ap_out_file_node;
+}
