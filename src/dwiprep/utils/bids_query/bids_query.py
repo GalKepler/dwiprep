@@ -161,8 +161,11 @@ class BidsQuery:
             Required preprocessing data
 
         """
-        base_queries = {"return_type": "file", "subject": subject,
-                        "extension": self.FILE_EXTENSIONS}
+        base_queries = {
+            "return_type": "file",
+            "subject": subject,
+            "extension": self.FILE_EXTENSIONS,
+        }
         if session:
             base_queries["session"] = session
         return {
@@ -214,11 +217,12 @@ class BidsQuery:
         session_niftis = self.collect_niftis(subject, session)
         session_data = {}
         for key, nifti in session_niftis.items():
-            if not nifti:
+            if nifti is None:
                 continue
             if isinstance(nifti, list):
                 associated_files = [
-                    self.get_parsed_associations(nii) for nii in nifti]
+                    self.get_parsed_associations(nii) for nii in nifti
+                ]
             else:
                 associated_files = [self.get_parsed_associations(nifti)]
             session_data[key] = associated_files
@@ -239,7 +243,8 @@ class BidsQuery:
             All files associated with *nifti* mapped by their corresponding suffixes.
         """
         associations = self.get_associated(nifti)
-        return self.parse_associated_files(associations)
+        if associations:
+            return self.parse_associated_files(associations) 
 
     def validate_file(self, rules: dict, file_name: dict):
         """

@@ -4,6 +4,7 @@ from nipype import Function
 import nipype.interfaces.io as nio
 import nipype.interfaces.mrtrix3 as mrt
 from nipype.interfaces.utility import Merge, IdentityInterface
+from nipype.pipeline.engine.workflows import Workflow
 from dwiprep.workflows.dmri.utils.utils import (
     infer_phase_encoding_direction_mif,
 )
@@ -255,6 +256,35 @@ def init_mrconvert_node(data_type: str, kwargs: dict) -> pe.Node:
     return pe.Node(mrt.MRConvert(**kwargs), name=f"{data_type}_mif_conversion")
 
 
+def get_output_path_node(name: str):
+    return pe.Node(
+        Function(
+            input_names=["bids_dir", "destination", "source", "entities"],
+            output_names=["out_file"],
+        ),
+        name=name,
+    )
+
+
+def add_output_nodes(
+    base_node: pe.Node, input_node: pe.Node, source: str, output_kwargs: dict
+):
+    connected_nodes = []
+    for key, value in output_kwargs.items():
+        output_node = get_output_path_node(f"{key}_node")
+        output_node.inputs.entities = value
+        connected_node = [(input_node, output_node, [(source, "source")])]
+        connected_node.append(
+            (
+                base_node,
+                output_node,
+                [("bids_dir", "bids_dir"), ("destination", "destination")],
+            ),
+        )
+        connected_nodes.append(connected_node)
+    return connected_nodes
+
+
 def build_output_path(
     bids_dir: str, destination: str, source: str, entities: dict = {}
 ):
@@ -285,6 +315,83 @@ def make_node(bids_dir, destination, source, interface, kwargs, name):
         target = build_output_path(bids_dir, destination, source, val)
         node.set_input(key, target)
     return node
+
+
+def epi_ref_wf(
+    inputnode: pe.Node,
+    conversion_node: Workflow,
+    dwiextract_kwargs: dict = DWIEXTRACT_KWARGS,
+    mrmath_kwargs: dict = MRMATH_KWARGS,
+) -> Workflow:
+    """
+    Build a workflow for generation of EPI referance image
+
+    Parameters
+    ----------
+    inputnode : pe.Node
+        Pipeline's input node
+
+    Returns
+    -------
+    Workflow
+        EPI-reference generation workflow
+    """
+    dwiextract = pe.Node(
+        mrt.DWIExtract(**dwiextract_kwargs), name="dwiextract"
+    )
+    # dwiextract_naming = get_output_
+    mrmath = pe.Node(mrt.MRMath(**mrmath_kwargs), name="mrmath")
+    wf = Workflow(name="EPI_ref")
+    wf.connect(
+        [
+            inputnode,
+            dwiextract_naming,
+            [
+                ("dwi_file", "source"),
+                ("bids_dir", "bids_dir"),
+                ("destination", "destination"),
+            ],
+            dwiextract_naming,
+            dwiextract,
+            [("out_file", "out_file")],
+            inputnode,
+            mrmath_naming,
+            [
+                ("dwi_file", "source"),
+                ("bids_dir", "bids_dir"),
+                ("destination", "destination"),
+            ],
+            mrmath_naming,
+            mrmath,
+            [("out_file", "out_file")],
+            conversion_node,
+            dwiextract,
+            [("dwi_conversion.out_file", "in_file")],
+            dwiextract,
+            mrmath,
+            ["out_file", "in_file"],
+        ]
+    )
+    return wf
+
+
+def build_backbone(
+    wf: Workflow,
+    dwiextract_kwargs: dict = DWIEXTRACT_KWARGS,
+    mrmath_kwargs: dict = MRMATH_KWARGS,
+    mrcat_kwargs: dict = MRCAT_KWARGS,
+    dwidenoise_kwargs: dict = DWIDENOISE_KWARGS,
+    dwifslpreproc_kwargs: dict = DWIFSLPREPROC_KWARGS,
+    dwibiascorrect_kwargs: dict = DWIBIASCORRECT_KWARGS,
+) -> Workflow:
+    inputnode = wf.get_node("inputnode")
+    conversion_node = wf.get_node("conversion")
+    epi_ref_wf = epi_ref_wf(
+        inputnode, conversion_node, dwiextract_kwargs, mrmath_kwargs
+    )
+
+
+#     if wf.get_node("inputnode")
 
 
 def init_preprocess_wf(
