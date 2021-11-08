@@ -169,6 +169,9 @@ def init_dwi_preproc_wf(
         add_fieldmaps_to_wf,
     )
     from dwiprep.workflows.dmri.pipelines.preprocess import init_preprocess_wf
+    from dwiprep.workflows.dmri.pipelines.tensor_estimation import (
+        init_tensor_wf,
+    )
 
     # from dmriprep.workflows.dwi.outputs import (
     #     init_dwi_derivatives_wf,
@@ -319,12 +322,17 @@ def init_dwi_preproc_wf(
             suffix = "dwi"
         elif "epi_ref" in orig_file:
             suffix = "sbref"
+        if "_file" in orig_file:
+            compress = True
+        else:
+            compress = False
         dsink = pe.Node(
             DerivativesDataSink(
                 base_directory=output_dir,
                 space="dwi",
                 desc="preproc",
                 suffix=suffix,
+                compress=compress,
             ),
             name=f"{orig_file}_sinker",
         )
@@ -342,6 +350,42 @@ def init_dwi_preproc_wf(
                 ),
             ]
         )
+    tensor_wf, metrics = init_tensor_wf()
+    workflow.connect(
+        [
+            (
+                preprocess_wf,
+                tensor_wf,
+                [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            ),
+        ]
+    )
+    for metric in metrics:
+        dsink = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                space="dwi",
+                suffix=metric,
+                datatype="tensor",
+                extension="nii.gz",
+            ),
+            name=f"{metric}_sinker",
+        )
+        workflow.connect(
+            [
+                (
+                    tensor_wf,
+                    dsink,
+                    [(f"outputnode.{metric}", "in_file")],
+                ),
+                (
+                    inputnode,
+                    dsink,
+                    [("dwi_file", "source_file")],
+                ),
+            ]
+        )
+
     return workflow
     # outputnode = pe.Node(
     #     niu.IdentityInterface(

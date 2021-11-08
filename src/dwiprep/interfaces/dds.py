@@ -4,6 +4,7 @@ from pathlib import Path
 from pkg_resources import resource_filename as _pkgres
 import re
 import nibabel as nb
+import numpy as np
 
 from nipype.interfaces.base import SimpleInterface, traits
 from nipype.interfaces.base import (
@@ -18,6 +19,9 @@ from nipype.interfaces.base import (
     Str,
     SimpleInterface,
 )
+
+from nipype import logging
+
 from nipype.interfaces.io import add_traits
 from niworkflows.utils.bids import relative_to_root
 from niworkflows.utils.misc import splitext as _splitext, _copy_any
@@ -35,6 +39,7 @@ _pybids_spec = loads(
 BIDS_DERIV_ENTITIES = frozenset({e["name"] for e in _pybids_spec["entities"]})
 BIDS_DERIV_PATTERNS = tuple(_pybids_spec["default_path_patterns"])
 STANDARD_SPACES = _get_template_list()
+LOGGER = logging.getLogger("nipype.interface")
 
 
 def _none():
