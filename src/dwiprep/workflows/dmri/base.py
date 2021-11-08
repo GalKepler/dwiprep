@@ -30,9 +30,6 @@ from nipype.pipeline.engine import workflows
 
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from dwiprep.interfaces.dds import DerivativesDataSink
-from niworkflows.workflows.epi.refmap import init_epi_reference_wf
-
-from dwiprep.workflows.dmri.pipelines import conversions
 
 
 def get_fieldmaps(dwi_file: str, layout: BIDSLayout):
@@ -162,7 +159,10 @@ def init_dwi_preproc_wf(
     from niworkflows.interfaces.reportlets.registration import (
         SimpleBeforeAfterRPT as SimpleBeforeAfter,
     )
-    from dwiprep.workflows.dmri.pipelines.conversions import init_conversion_wf
+    from dwiprep.workflows.dmri.pipelines.conversions import (
+        init_conversion_wf,
+        init_nii_conversion_wf,
+    )
     from dwiprep.workflows.dmri.pipelines.epi_ref import init_epi_ref_wf
     from dwiprep.workflows.dmri.pipelines.fmap_prep import (
         init_phasediff_wf,
@@ -215,6 +215,7 @@ def init_dwi_preproc_wf(
     for key, value in fieldmaps.items():
         inputnode.set_input(key, value)
 
+    # convert to mif format
     conversion_wf = init_conversion_wf()
     workflow.connect(
         [
@@ -234,6 +235,8 @@ def init_dwi_preproc_wf(
             )
         ]
     )
+
+    # extract mean b0
     epi_ref_wf = init_epi_ref_wf()
     workflow.connect(
         [
@@ -244,11 +247,15 @@ def init_dwi_preproc_wf(
             )
         ]
     )
+
+    # prepare for topup+eddy and infer phasediff type
     phasediff_wf = init_phasediff_wf()
     phasediff_entry = add_fieldmaps_to_wf(
         inputnode, conversion_wf, epi_ref_wf, phasediff_wf
     )
     workflow.connect(phasediff_entry)
+
+    # preprocess - denoise, topup, eddy, bias correction
     preprocess_wf = init_preprocess_wf()
     workflow.connect(
         [
@@ -269,30 +276,73 @@ def init_dwi_preproc_wf(
             ),
         ]
     )
-    preproc_derivatives_node = pe.Node(
-        DerivativesDataSink(
-            base_directory=output_dir,
-            space="dwi",
-            desc="preproc",
-            extension="mif",
-        ),
-        name="sinker",
-    )
+
+    # extract preprocessed mean b0
+    preproc_epi_ref_wf = init_epi_ref_wf(name="preprocessed_epi_ref_wf")
     workflow.connect(
         [
             (
-                inputnode,
-                preproc_derivatives_node,
-                [("dwi_file", "source_file")],
-            ),
+                preprocess_wf,
+                preproc_epi_ref_wf,
+                [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            )
+        ]
+    )
+
+    # convert to NIfTI format
+    nii_conversion_wf = init_nii_conversion_wf()
+    workflow.connect(
+        [
             (
                 preprocess_wf,
-                preproc_derivatives_node,
-                [("outputnode.dwi_preproc", "in_file")],
+                nii_conversion_wf,
+                [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            ),
+            (
+                preproc_epi_ref_wf,
+                nii_conversion_wf,
+                [("outputnode.epi_ref_file", "inputnode.epi_ref")],
             ),
         ]
     )
-    return inputnode, workflow
+
+    # conform to BIDS derivatives format
+    for orig_file in [
+        "dwi_file",
+        "dwi_bvec",
+        "dwi_bval",
+        "dwi_json",
+        "epi_ref_file",
+        "epi_ref_json",
+    ]:
+        if "dwi" in orig_file:
+            suffix = "dwi"
+        elif "epi_ref" in orig_file:
+            suffix = "sbref"
+        dsink = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                space="dwi",
+                desc="preproc",
+                suffix=suffix,
+            ),
+            name=f"{orig_file}_sinker",
+        )
+        workflow.connect(
+            [
+                (
+                    nii_conversion_wf,
+                    dsink,
+                    [(f"outputnode.{orig_file}", "in_file")],
+                ),
+                (
+                    inputnode,
+                    dsink,
+                    [("dwi_file", "source_file")],
+                ),
+            ]
+        )
+    return workflow
     # outputnode = pe.Node(
     #     niu.IdentityInterface(
     #         fields=["dwi_reference", "dwi_mask", "gradients_rasb"]
@@ -377,7 +427,6 @@ def init_dwi_preproc_wf(
     #             (("outputnode.fallback", _bold_reg_suffix), "desc")]),
     #     ])
     # fmt: on
-    return inputnode, fieldmaps
 
     # if "eddy" not in config.workflow.ignore:
     #     # Eddy distortion correction

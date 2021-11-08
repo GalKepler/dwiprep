@@ -3,6 +3,7 @@ from json import dumps, loads
 from pathlib import Path
 from pkg_resources import resource_filename as _pkgres
 import re
+import nibabel as nb
 
 from nipype.interfaces.base import SimpleInterface, traits
 from nipype.interfaces.base import (
@@ -20,6 +21,11 @@ from nipype.interfaces.base import (
 from nipype.interfaces.io import add_traits
 from niworkflows.utils.bids import relative_to_root
 from niworkflows.utils.misc import splitext as _splitext, _copy_any
+from niworkflows.utils.images import (
+    set_consumables,
+    unsafe_write_nifti_header_and_data,
+)
+from templateflow.api import templates as _get_template_list
 
 regz = re.compile(r"\.gz$")
 
@@ -28,6 +34,7 @@ _pybids_spec = loads(
 )
 BIDS_DERIV_ENTITIES = frozenset({e["name"] for e in _pybids_spec["entities"]})
 BIDS_DERIV_PATTERNS = tuple(_pybids_spec["default_path_patterns"])
+STANDARD_SPACES = _get_template_list()
 
 
 def _none():
