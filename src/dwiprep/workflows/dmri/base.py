@@ -492,6 +492,7 @@ def init_preprocess_wf(
     dwidenoise_kwargs: dict = DWIDENOISE_KWARGS,
     dwifslpreproc_kwargs: dict = DWIFSLPREPROC_KWARGS,
     dwibiascorrect_kwargs: dict = DWIBIASCORRECT_KWARGS,
+    mrconvert_kwargs: dict = MRCONVERT_KWARGS,
 ):
     wf = pe.Workflow(name="preprocess")
     wf.base_dir = inputnode.inputs.work_dir
@@ -563,6 +564,26 @@ def init_preprocess_wf(
     for connection in biascorrect_outputs_connection:
         connections.append(connection)
 
+    # mrconvert
+    mrconvert = pe.Node(
+        mrt.MRConvert(**mrconvert_kwargs.get("inputs")),
+        name="mrconvert",
+    )
+    mrconvert_outputs = dwibiascorrect_kwargs.get("outputs")
+    mrconvert_outputs["out_file"]["extension"] = "nii.gz"
+    mrconvert_outputs["out_bvec"] = mrconvert_outputs["out_file"].copy()
+    mrconvert_outputs["out_bvec"]["extension"] = "bvec"
+    mrconvert_outputs["out_bval"] = mrconvert_outputs["out_file"].copy()
+    mrconvert_outputs["out_bval"]["extension"] = "bval"
+    mrconvert_outputs_connection = add_output_nodes(
+        inputnode,
+        "dwi",
+        mrconvert_outputs,
+        mrconvert,
+        "mrconvert",
+    )
+    for connection in mrconvert_outputs_connection:
+        connections.append(connection)
     connections.append(
         (dwidenoise, infer_pe, [("out_file", "in_file")]),
     )
@@ -570,6 +591,7 @@ def init_preprocess_wf(
     connections.append((dwidenoise, dwifslpreproc, [("out_file", "in_file")]))
     connections.append((mrcat, dwifslpreproc, [("out_file", "in_epi")]))
     connections.append((dwifslpreproc, biascorrect, [("out_file", "in_file")]))
+    connections.append((biascorrect, mrconvert, [("out_file", "in_file")]))
 
     wf.connect(connections)
     return wf
