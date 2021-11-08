@@ -23,7 +23,9 @@ from niworkflows.utils.misc import splitext as _splitext, _copy_any
 
 regz = re.compile(r"\.gz$")
 
-_pybids_spec = loads(Path(_pkgres("dwiprep", "data/dwiprep.json")).read_text())
+_pybids_spec = loads(
+    Path(_pkgres("dwiprep", "data/bids_specifications.json")).read_text()
+)
 BIDS_DERIV_ENTITIES = frozenset({e["name"] for e in _pybids_spec["entities"]})
 BIDS_DERIV_PATTERNS = tuple(_pybids_spec["default_path_patterns"])
 
