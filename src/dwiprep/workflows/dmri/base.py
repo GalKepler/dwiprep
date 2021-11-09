@@ -176,7 +176,7 @@ def init_dwi_preproc_wf(
     )
 
     # from dwiprep.workflows.coreg.pipelines.bbreg import init_bbreg_wf
-    from niworkflows.anat.coregistration import init_bbreg_wf
+    from niworkflows.anat.coregistration import init_epireg_wf
 
     # from dmriprep.workflows.dwi.outputs import (
     #     init_dwi_derivatives_wf,
@@ -352,6 +352,7 @@ def init_dwi_preproc_wf(
                 desc="preproc",
                 suffix=suffix,
                 compress=compress,
+                source_file=str(dwi_file.absolute()),
             ),
             name=f"{orig_file}_sinker",
         )
@@ -361,11 +362,6 @@ def init_dwi_preproc_wf(
                     nii_conversion_wf,
                     dsink,
                     [(f"outputnode.{orig_file}", "in_file")],
-                ),
-                (
-                    inputnode,
-                    dsink,
-                    [("dwi_file", "source_file")],
                 ),
             ]
         )
@@ -387,6 +383,7 @@ def init_dwi_preproc_wf(
                 suffix=metric,
                 datatype="tensor",
                 extension="nii.gz",
+                source_file=str(dwi_file.absolute()),
             ),
             name=f"{metric}_sinker",
         )
@@ -397,51 +394,19 @@ def init_dwi_preproc_wf(
                     dsink,
                     [(f"outputnode.{metric}", "in_file")],
                 ),
-                (
-                    inputnode,
-                    dsink,
-                    [("dwi_file", "source_file")],
-                ),
             ]
         )
     # Mask the T1w
     t1w_brain = pe.Node(ApplyMask(), name="t1w_brain")
-    bbr_wf = init_bbreg_wf(
-        omp_nthreads=6,
-    )
-    bbr_wf.inputs.bbregister.out_fsl_file = True
-    bbr_wf.inputs.bbregister.registered_file = "epi_coreg.nii.gz"
-    ds_report_reg = pe.Node(
-        DerivativesDataSink(
-            base_directory=str(output_dir),
-            datatype="figures",
-        ),
-        name="ds_report_reg",
-        run_without_submitting=True,
-    )
-    bbreg_derivatives = pe.Node(
-        DerivativesDataSink(
-            base_directory=str(output_dir),
-            datatype="dwi",
-            to="T1w",
-            extension="lta",
-        ),
-        name="epi_reg_sinker",
-    )
-    bbreg_derivatives.set_input("from", "dwi")
-
-    def _epi_reg_suffix(fallback):
-        return "coreg" if fallback else "bbregister"
+    epi_reg_wf = init_epireg_wf()
 
     workflow.connect(
         [
             (
                 inputnode,
-                bbr_wf,
+                epi_reg_wf,
                 [
-                    ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
-                    (("subject_id", _prefix), "inputnode.subject_id"),
-                    ("subjects_dir", "inputnode.subjects_dir"),
+                    ("t1w_preproc", "inputnode.t1w_head"),
                 ],
             ),
             # T1w Mask
@@ -450,33 +415,51 @@ def init_dwi_preproc_wf(
                 t1w_brain,
                 [("t1w_preproc", "in_file"), ("t1w_mask", "in_mask")],
             ),
-            (inputnode, ds_report_reg, [("dwi_file", "source_file")]),
+            # T1w Brain
+            (t1w_brain, epi_reg_wf, [("out_file", "inputnode.t1w_brain")]),
             # BBRegister
             (
                 nii_conversion_wf,
-                bbr_wf,
+                epi_reg_wf,
                 [("outputnode.epi_ref_file", "inputnode.in_file")],
             ),
-            (
-                bbr_wf,
-                ds_report_reg,
-                [
-                    ("outputnode.out_report", "in_file"),
-                    (("outputnode.fallback", _epi_reg_suffix), "desc"),
-                ],
-            ),
-            (
-                bbr_wf,
-                bbreg_derivatives,
-                [
-                    ("outputnode.itk_t1w_to_epi", "in_file"),
-                    (("outputnode.fallback", _epi_reg_suffix), "desc"),
-                ],
-            ),
-            (inputnode, bbreg_derivatives, [("dwi_file", "source_file")]),
         ]
     )
-
+    for output, origin, target in zip(
+        ["epi_to_t1w_aff", "t1w_to_epi_aff"], ["epi", "T1w"], ["T1w", "epi"]
+    ):
+        dsink = pe.Node(
+            DerivativesDataSink(
+                base_directory=output_dir,
+                dismiss_entities=["direction"],
+                suffix="xfm",
+                mode="image",
+                extension="txt",
+                to=target,
+                source_file=str(dwi_file.absolute()),
+            ),
+            name=f"{output}_sinker",
+        )
+        setattr(dsink.inputs, "from", origin)
+        workflow.connect(
+            [
+                (epi_reg_wf, dsink, [(f"outputnode.{output}", "in_file")]),
+            ]
+        )
+    dsink = pe.Node(
+        DerivativesDataSink(
+            base_directory=output_dir,
+            suffix="sbref",
+            space="T1w",
+            extension="nii.gz",
+            desc="preproc",
+            source_file=str(dwi_file.absolute()),
+        ),
+        name=f"epi_ref_to_T1w_sinker",
+    )
+    workflow.connect(
+        [(epi_reg_wf, dsink, [("outputnode.epi_to_t1w", "in_file")])]
+    )
     return workflow
     # outputnode = pe.Node(
     #     niu.IdentityInterface(
