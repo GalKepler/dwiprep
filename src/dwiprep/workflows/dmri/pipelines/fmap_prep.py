@@ -46,7 +46,7 @@ def add_fieldmaps_to_wf(
         ]
 
     else:
-        if fmap_pa:
+        if fmap_pa is not None:
             connection = [
                 (
                     epi_ref_wf,
@@ -62,7 +62,7 @@ def add_fieldmaps_to_wf(
                 ),
             ]
 
-        elif fmap_ap:
+        elif fmap_ap is not None:
             connection = [
                 (
                     epi_ref_wf,

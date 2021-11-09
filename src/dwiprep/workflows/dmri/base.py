@@ -238,7 +238,7 @@ def init_dwi_preproc_wf(
         inputnode.set_input(key, value)
 
     # convert to mif format
-    conversion_wf = init_conversion_wf()
+    conversion_wf = init_conversion_wf(inputnode)
     workflow.connect(
         [
             (
