@@ -46,7 +46,7 @@ def add_fieldmaps_to_wf(
         ]
 
     else:
-        if fmap_pa:
+        if fmap_pa is not None:
             connection = [
                 (
                     epi_ref_wf,
@@ -62,7 +62,7 @@ def add_fieldmaps_to_wf(
                 ),
             ]
 
-        elif fmap_ap:
+        elif fmap_ap is not None:
             connection = [
                 (
                     epi_ref_wf,
@@ -79,6 +79,6 @@ def add_fieldmaps_to_wf(
             ]
         else:
             raise NotImplementedError(
-                "Currently fieldmap-based SDC is mandatory and thus requires at least on opposite single-volume EPI image."
+                "Currently fieldmap-based SDC is mandatory and thus requires at least one opposite single-volume EPI image."
             )
     return connection

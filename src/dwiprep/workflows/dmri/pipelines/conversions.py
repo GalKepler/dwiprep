@@ -1,10 +1,10 @@
 import nipype.pipeline.engine as pe
 from nipype.interfaces import utility as niu
+from nipype.interfaces import mrtrix3 as mrt
+from traits.trait_base import _Undefined
 
 
-def init_conversion_wf(name: str = "mif_conversion_wf"):
-    from nipype.interfaces import mrtrix3 as mrt
-
+def init_conversion_wf(main_inputs: pe.Node, name: str = "mif_conversion_wf"):
     wf = pe.Workflow(name=name)
 
     inputnode = pe.Node(
@@ -35,9 +35,6 @@ def init_conversion_wf(name: str = "mif_conversion_wf"):
         name="outputnode",
     )
     dwi_conversion = pe.Node(mrt.MRConvert(), name="dwi_conversion")
-    fmap_ap_conversion = pe.Node(mrt.MRConvert(), name="fmap_ap_conversion")
-    fmap_pa_conversion = pe.Node(mrt.MRConvert(), name="fmap_pa_conversion")
-
     wf.connect(
         [
             (
@@ -50,27 +47,43 @@ def init_conversion_wf(name: str = "mif_conversion_wf"):
                     ("in_bval", "in_bval"),
                 ],
             ),
-            (
-                inputnode,
-                fmap_ap_conversion,
-                [
-                    ("fmap_ap", "in_file"),
-                    ("fmap_ap_json", "json_import"),
-                ],
-            ),
-            (
-                inputnode,
-                fmap_pa_conversion,
-                [
-                    ("fmap_pa", "in_file"),
-                    ("fmap_pa_json", "json_import"),
-                ],
-            ),
             (dwi_conversion, outputnode, [("out_file", "dwi_file")]),
-            (fmap_ap_conversion, outputnode, [("out_file", "fmap_ap")]),
-            (fmap_pa_conversion, outputnode, [("out_file", "fmap_pa")]),
         ]
     )
+    if not isinstance(getattr(main_inputs.inputs, "fmap_ap"), _Undefined):
+        fmap_ap_conversion = pe.Node(
+            mrt.MRConvert(), name="fmap_ap_conversion"
+        )
+        wf.connect(
+            [
+                (
+                    inputnode,
+                    fmap_ap_conversion,
+                    [
+                        ("fmap_ap", "in_file"),
+                        ("fmap_ap_json", "json_import"),
+                    ],
+                ),
+                (fmap_ap_conversion, outputnode, [("out_file", "fmap_ap")]),
+            ]
+        )
+    if not isinstance(getattr(main_inputs.inputs, "fmap_pa"), _Undefined):
+        fmap_pa_conversion = pe.Node(
+            mrt.MRConvert(), name="fmap_pa_conversion"
+        )
+        wf.connect(
+            [
+                (
+                    inputnode,
+                    fmap_pa_conversion,
+                    [
+                        ("fmap_pa", "in_file"),
+                        ("fmap_pa_json", "json_import"),
+                    ],
+                ),
+                (fmap_pa_conversion, outputnode, [("out_file", "fmap_pa")]),
+            ]
+        )
     return wf
 
 
