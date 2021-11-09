@@ -79,6 +79,6 @@ def add_fieldmaps_to_wf(
             ]
         else:
             raise NotImplementedError(
-                "Currently fieldmap-based SDC is mandatory and thus requires at least on opposite single-volume EPI image."
+                "Currently fieldmap-based SDC is mandatory and thus requires at least one opposite single-volume EPI image."
             )
     return connection
