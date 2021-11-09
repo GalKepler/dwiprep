@@ -159,6 +159,8 @@ def init_dwi_preproc_wf(
     from niworkflows.interfaces.reportlets.registration import (
         SimpleBeforeAfterRPT as SimpleBeforeAfter,
     )
+    from niworkflows.interfaces.nibabel import ApplyMask
+    from dmriprep.utils.misc import sub_prefix as _prefix
     from dwiprep.workflows.dmri.pipelines.conversions import (
         init_conversion_wf,
         init_nii_conversion_wf,
@@ -172,6 +174,9 @@ def init_dwi_preproc_wf(
     from dwiprep.workflows.dmri.pipelines.tensor_estimation import (
         init_tensor_wf,
     )
+
+    # from dwiprep.workflows.coreg.pipelines.bbreg import init_bbreg_wf
+    from niworkflows.anat.coregistration import init_bbreg_wf
 
     # from dmriprep.workflows.dwi.outputs import (
     #     init_dwi_derivatives_wf,
@@ -196,6 +201,20 @@ def init_dwi_preproc_wf(
                 "fmap_ap_json",
                 "fmap_pa",
                 "fmap_pa_json",
+                # From anatomical
+                "t1w_preproc",
+                "t1w_mask",
+                "t1w_dseg",
+                "t1w_aseg",
+                "t1w_aparc",
+                "t1w_tpms",
+                "template",
+                "anat2std_xfm",
+                "std2anat_xfm",
+                "subjects_dir",
+                "subject_id",
+                "t1w2fsnative_xfm",
+                "fsnative2t1w_xfm",
             ]
         ),
         name="inputnode",
@@ -385,6 +404,78 @@ def init_dwi_preproc_wf(
                 ),
             ]
         )
+    # Mask the T1w
+    t1w_brain = pe.Node(ApplyMask(), name="t1w_brain")
+    bbr_wf = init_bbreg_wf(
+        omp_nthreads=6,
+    )
+    bbr_wf.inputs.bbregister.out_fsl_file = True
+    bbr_wf.inputs.bbregister.registered_file = "epi_coreg.nii.gz"
+    ds_report_reg = pe.Node(
+        DerivativesDataSink(
+            base_directory=str(output_dir),
+            datatype="figures",
+        ),
+        name="ds_report_reg",
+        run_without_submitting=True,
+    )
+    bbreg_derivatives = pe.Node(
+        DerivativesDataSink(
+            base_directory=str(output_dir),
+            datatype="dwi",
+            to="T1w",
+            extension="lta",
+        ),
+        name="epi_reg_sinker",
+    )
+    bbreg_derivatives.set_input("from", "dwi")
+
+    def _epi_reg_suffix(fallback):
+        return "coreg" if fallback else "bbregister"
+
+    workflow.connect(
+        [
+            (
+                inputnode,
+                bbr_wf,
+                [
+                    ("fsnative2t1w_xfm", "inputnode.fsnative2t1w_xfm"),
+                    (("subject_id", _prefix), "inputnode.subject_id"),
+                    ("subjects_dir", "inputnode.subjects_dir"),
+                ],
+            ),
+            # T1w Mask
+            (
+                inputnode,
+                t1w_brain,
+                [("t1w_preproc", "in_file"), ("t1w_mask", "in_mask")],
+            ),
+            (inputnode, ds_report_reg, [("dwi_file", "source_file")]),
+            # BBRegister
+            (
+                nii_conversion_wf,
+                bbr_wf,
+                [("outputnode.epi_ref_file", "inputnode.in_file")],
+            ),
+            (
+                bbr_wf,
+                ds_report_reg,
+                [
+                    ("outputnode.out_report", "in_file"),
+                    (("outputnode.fallback", _epi_reg_suffix), "desc"),
+                ],
+            ),
+            (
+                bbr_wf,
+                bbreg_derivatives,
+                [
+                    ("outputnode.itk_t1w_to_epi", "in_file"),
+                    (("outputnode.fallback", _epi_reg_suffix), "desc"),
+                ],
+            ),
+            (inputnode, bbreg_derivatives, [("dwi_file", "source_file")]),
+        ]
+    )
 
     return workflow
     # outputnode = pe.Node(
