@@ -1,7 +1,6 @@
 from nipype.pipeline import engine as pe
 from nipype.interfaces import utility as niu
-from nipype.interfaces import fsl, ants
-from nipype.pipeline.engine import workflows
+from nipype.interfaces import fsl
 
 
 def init_epireg_wf(
@@ -66,25 +65,30 @@ def init_epireg_wf(
 
 def init_apply_transform(in_fields: list, name="apply_transform_wf"):
     wf = pe.Workflow(name=name)
+    metrics = in_fields.copy()
     in_fields += ["dwi_file", "epi_to_t1w_aff", "t1w_brain"]
     inputnode = pe.Node(
-        niu.IdentityInterface(in_fields=in_fields), name="inputnode"
+        niu.IdentityInterface(fields=in_fields), name="inputnode"
     )
     outputnode = pe.Node(
-        niu.IdentityInterface(in_fields=in_fields), name="outputnode"
+        niu.IdentityInterface(fields=in_fields), name="outputnode"
     )
-    for field in in_fields:
-        node = pe.Node(ants.ApplyTransforms(), name=f"apply_transform_{field}")
+    for field in metrics + ["dwi_file"]:
+        node = pe.Node(
+            fsl.ApplyXFM(apply_xfm=True), name=f"apply_transform_{field}"
+        )
         wf.connect(
             [
                 (
                     inputnode,
                     node,
                     [
-                        ("epi_to_t1w_aff", "transforms"),
-                        ("t1w_brain", "reference_image"),
-                        (field, "input_image"),
+                        ("epi_to_t1w_aff", "in_matrix_file"),
+                        ("t1w_brain", "reference"),
+                        (field, "in_file"),
                     ],
-                )
+                ),
+                (node, outputnode, [("out_file", field)]),
             ]
         )
+    return wf
