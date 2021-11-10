@@ -97,9 +97,6 @@ def init_dwi_preproc_wf(
     * :py:func:`~dmriprep.workflows.dwi.outputs.init_reportlets_wf`
 
     """
-    from niworkflows.interfaces.reportlets.registration import (
-        SimpleBeforeAfterRPT as SimpleBeforeAfter,
-    )
     from niworkflows.interfaces.nibabel import ApplyMask
     from dmriprep.utils.misc import sub_prefix as _prefix
     from dwiprep.workflows.dmri.pipelines.conversions import (
@@ -127,59 +124,10 @@ def init_dwi_preproc_wf(
     # )
 
     dwi_file = Path(dwi_file)
-    output_dir = Path(output_dir) / "dmriprep"
+    output_dir = Path(output_dir)
     # Build workflow
     workflow = Workflow(name=_get_wf_name(dwi_file.name))
     workflow.base_dir = work_dir
-
-    # inputnode = pe.Node(
-    #     niu.IdentityInterface(
-    #         fields=[
-    #             # DWI
-    #             "dwi",
-    #             "in_bvec",
-    #             "in_bval",
-    #             "in_json",
-    #             # fmap
-    #             "fmap_ap",
-    #             "fmap_ap_json",
-    #             "fmap_pa",
-    #             "fmap_pa_json",
-    #             # From anatomical
-    #             "t1w_preproc",
-    #             "t1w_mask",
-    #             "t1w_dseg",
-    #             "t1w_aseg",
-    #             "t1w_aparc",
-    #             "t1w_tpms",
-    #             "template",
-    #             "anat2std_xfm",
-    #             "std2anat_xfm",
-    #             "subjects_dir",
-    #             "subject_id",
-    #             "t1w2fsnative_xfm",
-    #             "fsnative2t1w_xfm",
-    #         ]
-    #     ),
-    #     name="inputnode",
-    # )
-
-    # # set inputs
-    # json_file = [
-    #     j
-    #     for j in layout.get_file(dwi_file).get_associations()
-    #     if j.get_entities().get("extension") in [".json", "json"]
-    # ]
-    # json_file = json_file[0].path if json_file else None
-    # inputnode.inputs.dwi_file = str(dwi_file.absolute())
-    # inputnode.inputs.in_bvec = str(layout.get_bvec(dwi_file))
-    # inputnode.inputs.in_bval = str(layout.get_bval(dwi_file))
-    # inputnode.inputs.in_json = str(json_file)
-
-    # # add fieldmaps
-    # fieldmaps = get_fieldmaps(str(dwi_file), layout)
-    # for key, value in fieldmaps.items():
-    #     inputnode.set_input(key, value)
 
     # convert to mif format
     conversion_wf = init_conversion_wf(inputnode)
