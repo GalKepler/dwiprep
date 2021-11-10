@@ -1,6 +1,6 @@
 """Main module."""
 from pathlib import Path
-
+import os
 import nipype.pipeline.engine as pe
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
@@ -26,7 +26,9 @@ class DmriPrepManager:
         self.participant_labels = bids_query.participant_labels
         self.smriprep_kwargs = smriprep_kwargs
         self.destination = destination
-        self.fs_subjects_dir = fs_subjects_dir
+        self.fs_subjects_dir = fs_subjects_dir or os.environ.get(
+            "SUBJECTS_DIR"
+        )
         self.work_dir = self.validate_work_dir(destination, work_dir)
 
     def validate_work_dir(self, destination: str, work_dir: str = None):
@@ -53,6 +55,7 @@ class DmriPrepManager:
         subj_data = self.bids_query.collect_data(participant_label)
         t1w = [f.get("nifti") for f in subj_data.get("T1w")]
         t2w = [f.get("nifti") for f in subj_data.get("T2w")]
+
         anat_derivatives = self.smriprep_kwargs.get("anat_derivatives")
         spaces = self.smriprep_kwargs.get("spaces")
         if anat_derivatives:
@@ -76,7 +79,13 @@ class DmriPrepManager:
         anat_preproc_wf.get_node(
             "inputnode"
         ).inputs.subject_id = participant_label
-        anat_preproc_wf.get_node("inputnode").inputs.t1w = t2w
+
+        anat_preproc_wf.get_node("inputnode").inputs.t2w = t2w
+        anat_preproc_wf.get_node("inputnode").inputs.t1w = t1w
+
+        anat_preproc_wf.get_node(
+            "inputnode"
+        ).inputs.subjects_dir = self.fs_subjects_dir
         anat_preproc_wf.__desc__ = f"\n\n{anat_preproc_wf.__desc__}"
         # Overwrite ``out_path_base`` of smriprep's DataSinks
         for node in anat_preproc_wf.list_node_names():

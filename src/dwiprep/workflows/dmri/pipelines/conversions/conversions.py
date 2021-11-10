@@ -1,6 +1,3 @@
-import nipype.pipeline.engine as pe
-from nipype.interfaces import utility as niu
-from nipype.interfaces import mrtrix3 as mrt
 from traits.trait_base import _Undefined
 from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
     MIF_INPUT_NODE,
