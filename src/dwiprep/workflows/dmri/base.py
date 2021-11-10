@@ -32,70 +32,11 @@ from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from dwiprep.interfaces.dds import DerivativesDataSink
 
 
-def get_fieldmaps(dwi_file: str, layout: BIDSLayout):
-    """
-    Locates all fieldmap associated with *dwi_file* according to the *IntendedFor* field in their corresponding jsons.
-
-    Parameters
-    ----------
-    dwi_file : str
-        dwi NIfTI file
-    layout : BIDSLayout
-        BIDSLayout instance for the queried bids directory.
-    """
-    fieldmaps = {}
-    dwi_entities = layout.parse_file_entities(dwi_file)
-    subject, session = [
-        dwi_entities.get(key) for key in ["subject", "session"]
-    ]
-    available_fieldmaps = layout.get(
-        subject=subject,
-        session=session,
-        datatype="fmap",
-        extension=["nii", "nii.gz"],
-    )
-    target = Path(dwi_file).name
-    for fmap in available_fieldmaps:
-        intended_for = fmap.get_metadata().get("IntendedFor")
-        if isinstance(intended_for, str):
-            intended_for = [intended_for]
-        intended_for = [Path(f).name for f in intended_for]
-        if target in intended_for:
-            fmap_dict = add_fieldmap(fmap, layout)
-            for key, value in fmap_dict.items():
-                fieldmaps[key] = value
-    return fieldmaps
-
-
-def add_fieldmap(fieldmap: BIDSFile, layout: BIDSLayout) -> dict:
-    """
-    Locates fieldmap-related json file and adds them in an appropriate dictionary with keys that describe their directionality
-
-    Parameters
-    ----------
-    fieldmap : BIDSFile
-        Fieldmap's NIfTI
-    layout : BIDSLayout
-        BIDSLayout instance for the queried bids directory.
-
-    Returns
-    -------
-    dict
-        Dictionary of fieldmap's NIfTI and json with appropriate keys.
-    """
-    entities = fieldmap.get_entities()
-    entities.pop("fmap")
-    direction = entities.get("direction")
-    entities["extension"] = "json"
-    json = layout.get(**entities)
-    fieldmap_dict = {f"fmap_{direction}": fieldmap.path}
-    if json:
-        fieldmap_dict[f"fmap_{direction}_json"] = json[0].path
-    return fieldmap_dict
-
-
 def init_dwi_preproc_wf(
-    dwi_file, layout: BIDSLayout = None, output_dir=None, work_dir=None
+    dwi_file,
+    inputnode: pe.Node,
+    output_dir=None,
+    work_dir=None,
 ):
     """
     Build a preprocessing workflow for one DWI run.
@@ -186,58 +127,59 @@ def init_dwi_preproc_wf(
     # )
 
     dwi_file = Path(dwi_file)
-
+    output_dir = Path(output_dir) / "dmriprep"
     # Build workflow
     workflow = Workflow(name=_get_wf_name(dwi_file.name))
+    workflow.base_dir = work_dir
 
-    inputnode = pe.Node(
-        niu.IdentityInterface(
-            fields=[
-                # DWI
-                "dwi",
-                "in_bvec",
-                "in_bval",
-                "in_json",
-                # fmap
-                "fmap_ap",
-                "fmap_ap_json",
-                "fmap_pa",
-                "fmap_pa_json",
-                # From anatomical
-                "t1w_preproc",
-                "t1w_mask",
-                "t1w_dseg",
-                "t1w_aseg",
-                "t1w_aparc",
-                "t1w_tpms",
-                "template",
-                "anat2std_xfm",
-                "std2anat_xfm",
-                "subjects_dir",
-                "subject_id",
-                "t1w2fsnative_xfm",
-                "fsnative2t1w_xfm",
-            ]
-        ),
-        name="inputnode",
-    )
+    # inputnode = pe.Node(
+    #     niu.IdentityInterface(
+    #         fields=[
+    #             # DWI
+    #             "dwi",
+    #             "in_bvec",
+    #             "in_bval",
+    #             "in_json",
+    #             # fmap
+    #             "fmap_ap",
+    #             "fmap_ap_json",
+    #             "fmap_pa",
+    #             "fmap_pa_json",
+    #             # From anatomical
+    #             "t1w_preproc",
+    #             "t1w_mask",
+    #             "t1w_dseg",
+    #             "t1w_aseg",
+    #             "t1w_aparc",
+    #             "t1w_tpms",
+    #             "template",
+    #             "anat2std_xfm",
+    #             "std2anat_xfm",
+    #             "subjects_dir",
+    #             "subject_id",
+    #             "t1w2fsnative_xfm",
+    #             "fsnative2t1w_xfm",
+    #         ]
+    #     ),
+    #     name="inputnode",
+    # )
 
-    # set inputs
-    json_file = [
-        j
-        for j in layout.get_file(dwi_file).get_associations()
-        if j.get_entities().get("extension") in [".json", "json"]
-    ]
-    json_file = json_file[0].path if json_file else None
-    inputnode.inputs.dwi_file = str(dwi_file.absolute())
-    inputnode.inputs.in_bvec = str(layout.get_bvec(dwi_file))
-    inputnode.inputs.in_bval = str(layout.get_bval(dwi_file))
-    inputnode.inputs.in_json = str(json_file)
+    # # set inputs
+    # json_file = [
+    #     j
+    #     for j in layout.get_file(dwi_file).get_associations()
+    #     if j.get_entities().get("extension") in [".json", "json"]
+    # ]
+    # json_file = json_file[0].path if json_file else None
+    # inputnode.inputs.dwi_file = str(dwi_file.absolute())
+    # inputnode.inputs.in_bvec = str(layout.get_bvec(dwi_file))
+    # inputnode.inputs.in_bval = str(layout.get_bval(dwi_file))
+    # inputnode.inputs.in_json = str(json_file)
 
-    # add fieldmaps
-    fieldmaps = get_fieldmaps(str(dwi_file), layout)
-    for key, value in fieldmaps.items():
-        inputnode.set_input(key, value)
+    # # add fieldmaps
+    # fieldmaps = get_fieldmaps(str(dwi_file), layout)
+    # for key, value in fieldmaps.items():
+    #     inputnode.set_input(key, value)
 
     # convert to mif format
     conversion_wf = init_conversion_wf(inputnode)
@@ -356,7 +298,7 @@ def init_dwi_preproc_wf(
                 compress=compress,
                 source_file=str(dwi_file.absolute()),
             ),
-            name=f"{orig_file}_sinker",
+            name=f"ds_{orig_file}",
         )
         workflow.connect(
             [
@@ -387,7 +329,7 @@ def init_dwi_preproc_wf(
                 extension="nii.gz",
                 source_file=str(dwi_file.absolute()),
             ),
-            name=f"{metric}_sinker",
+            name=f"ds_{metric}",
         )
         workflow.connect(
             [
@@ -440,7 +382,7 @@ def init_dwi_preproc_wf(
                 to=target,
                 source_file=str(dwi_file.absolute()),
             ),
-            name=f"{output}_sinker",
+            name=f"ds_{output}",
         )
         setattr(dsink.inputs, "from", origin)
         workflow.connect(
@@ -457,7 +399,7 @@ def init_dwi_preproc_wf(
             desc="preproc",
             source_file=str(dwi_file.absolute()),
         ),
-        name=f"epi_ref_to_T1w_sinker",
+        name=f"ds_epi_ref_to_T1w",
     )
     workflow.connect(
         [(epi_reg_wf, dsink, [("outputnode.epi_to_t1w", "in_file")])]
@@ -491,7 +433,7 @@ def init_dwi_preproc_wf(
             compress=True,
             source_file=str(dwi_file.absolute()),
         ),
-        name=f"transformed_dwi_sinker",
+        name=f"ds_transformed_dwi",
     )
     workflow.connect(
         [(apply_transform_wf, dsink, [("outputnode.dwi_file", "in_file")])]
@@ -508,7 +450,7 @@ def init_dwi_preproc_wf(
                 compress=True,
                 source_file=str(dwi_file.absolute()),
             ),
-            name=f"tranformed_{metric}_sinker",
+            name=f"ds_tranformed_{metric}",
         )
         workflow.connect(
             [

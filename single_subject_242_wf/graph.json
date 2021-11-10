@@ -1,0 +1,1507 @@
+[
+    {
+        "group": 1,
+        "imports": [],
+        "name": "000_split_desc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "000_split_desc"
+        ],
+        "name": "001_tf_select",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "002_tf_select",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "003_fmap_pa_conversion",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "004_fmap_ap_conversion",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "004_fmap_ap_conversion",
+            "003_fmap_pa_conversion"
+        ],
+        "name": "005_merge_files",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "005_merge_files"
+        ],
+        "name": "006_mrcat",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "007_dwi_conversion",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "007_dwi_conversion"
+        ],
+        "name": "008_dwiextract",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "008_dwiextract"
+        ],
+        "name": "009_mrmath",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "007_dwi_conversion"
+        ],
+        "name": "010_denoise",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "010_denoise"
+        ],
+        "name": "011_infer_pe",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "010_denoise",
+            "011_infer_pe",
+            "006_mrcat"
+        ],
+        "name": "012_dwipreproc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "012_dwipreproc"
+        ],
+        "name": "013_biascorrect",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "013_biascorrect"
+        ],
+        "name": "014_preproc_conversion",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "014_preproc_conversion"
+        ],
+        "name": "015_ds_dwi_json",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "014_preproc_conversion"
+        ],
+        "name": "016_ds_dwi_bval",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "014_preproc_conversion"
+        ],
+        "name": "017_ds_dwi_bvec",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "014_preproc_conversion"
+        ],
+        "name": "018_ds_dwi_file",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "013_biascorrect"
+        ],
+        "name": "019_dwiextract",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "019_dwiextract"
+        ],
+        "name": "020_mrmath",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "020_mrmath"
+        ],
+        "name": "021_preproc_sbref_conversion",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "021_preproc_sbref_conversion"
+        ],
+        "name": "022_ds_epi_ref_json",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "021_preproc_sbref_conversion"
+        ],
+        "name": "023_ds_epi_ref_file",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "013_biascorrect"
+        ],
+        "name": "024_fit_tensor",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "024_fit_tensor"
+        ],
+        "name": "025_tensor2metric",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "026_ds_eval",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "027_ds_evec",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "028_ds_cs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "029_ds_cp",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "030_ds_cl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "031_ds_rd",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "032_ds_ad",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "033_ds_adc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "025_tensor2metric"
+        ],
+        "name": "034_ds_fa",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "035_lap_tmpl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "035_lap_tmpl"
+        ],
+        "name": "036_mrg_tmpl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "037_full_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "038_res_tmpl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "039_t1w_ref_dimensions",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions"
+        ],
+        "name": "040_t1w_conform_check",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "040_t1w_conform_check"
+        ],
+        "name": "041_ds_t1w_conform_report",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions"
+        ],
+        "name": "042_raw_sources",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions"
+        ],
+        "name": "043_t1w_conform",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "043_t1w_conform"
+        ],
+        "name": "044_get1st",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "044_get1st"
+        ],
+        "name": "045_anat_validate",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "045_anat_validate"
+        ],
+        "name": "046_fov_check",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "045_anat_validate"
+        ],
+        "name": "047_recon_config",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "045_anat_validate"
+        ],
+        "name": "048_truncate_images",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "048_truncate_images"
+        ],
+        "name": "049_inu_n4",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "049_inu_n4"
+        ],
+        "name": "050_lap_target",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "049_inu_n4",
+            "050_lap_target"
+        ],
+        "name": "051_mrg_target",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "049_inu_n4"
+        ],
+        "name": "052_res_target",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "052_res_target",
+            "038_res_tmpl"
+        ],
+        "name": "053_init_aff",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "053_init_aff",
+            "036_mrg_tmpl",
+            "051_mrg_target"
+        ],
+        "name": "054_norm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "054_norm",
+            "037_full_wm",
+            "045_anat_validate"
+        ],
+        "name": "055_map_wmmask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "055_map_wmmask",
+            "045_anat_validate"
+        ],
+        "name": "056_inu_n4_final",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "054_norm",
+            "045_anat_validate"
+        ],
+        "name": "057_map_brainmask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "057_map_brainmask"
+        ],
+        "name": "058_thr_brainmask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "058_thr_brainmask"
+        ],
+        "name": "059_03_pad_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "058_thr_brainmask"
+        ],
+        "name": "060_dil_brainmask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "060_dil_brainmask"
+        ],
+        "name": "061_get_brainmask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "061_get_brainmask",
+            "056_inu_n4_final"
+        ],
+        "name": "062_01_atropos",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "062_01_atropos",
+            "055_map_wmmask"
+        ],
+        "name": "063_match_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "062_01_atropos",
+            "063_match_wm"
+        ],
+        "name": "064_overlap",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "062_01_atropos",
+            "064_overlap"
+        ],
+        "name": "065_sel_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "065_sel_wm",
+            "045_anat_validate"
+        ],
+        "name": "066_copy_xform_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "066_copy_xform_wm",
+            "058_thr_brainmask",
+            "055_map_wmmask"
+        ],
+        "name": "067_apply_wm_prior",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "067_apply_wm_prior",
+            "045_anat_validate"
+        ],
+        "name": "068_inu_n4_final",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "062_01_atropos"
+        ],
+        "name": "069_02_pad_segm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "069_02_pad_segm"
+        ],
+        "name": "070_04_sel_labels",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "070_04_sel_labels"
+        ],
+        "name": "071_27_depad_csf",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "070_04_sel_labels"
+        ],
+        "name": "072_10_me_csf",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "070_04_sel_labels"
+        ],
+        "name": "073_06_get_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "073_06_get_gm"
+        ],
+        "name": "074_07_fill_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "073_06_get_gm",
+            "074_07_fill_gm"
+        ],
+        "name": "075_08_mult_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "075_08_mult_gm",
+            "072_10_me_csf"
+        ],
+        "name": "076_11_add_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "076_11_add_gm"
+        ],
+        "name": "077_12_relabel_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "077_12_relabel_gm"
+        ],
+        "name": "078_25_depad_gm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "070_04_sel_labels"
+        ],
+        "name": "079_05_get_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "079_05_get_wm"
+        ],
+        "name": "080_09_relabel_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "080_09_relabel_wm"
+        ],
+        "name": "081_26_depad_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "081_26_depad_wm",
+            "078_25_depad_gm",
+            "071_27_depad_csf"
+        ],
+        "name": "082_merge_tpms",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "080_09_relabel_wm",
+            "077_12_relabel_gm"
+        ],
+        "name": "083_13_add_gm_wm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "083_13_add_gm_wm"
+        ],
+        "name": "084_24_depad_segm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "083_13_add_gm_wm"
+        ],
+        "name": "085_14_sel_labels2",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "085_14_sel_labels2"
+        ],
+        "name": "086_15_add_7",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "086_15_add_7"
+        ],
+        "name": "087_16_me_7",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "087_16_me_7"
+        ],
+        "name": "088_17_comp_7",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "088_17_comp_7"
+        ],
+        "name": "089_18_md_7",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "089_18_md_7"
+        ],
+        "name": "090_19_fill_7",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "059_03_pad_mask",
+            "090_19_fill_7"
+        ],
+        "name": "091_20_add_7_2",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "091_20_add_7_2"
+        ],
+        "name": "092_21_md_7_2",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "092_21_md_7_2"
+        ],
+        "name": "093_22_me_7_2",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "093_22_me_7_2"
+        ],
+        "name": "094_23_depad_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "094_23_depad_mask",
+            "045_anat_validate"
+        ],
+        "name": "095_msk_conform",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "068_inu_n4_final",
+            "095_msk_conform",
+            "084_24_depad_segm",
+            "082_merge_tpms",
+            "045_anat_validate"
+        ],
+        "name": "096_copy_xform",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform"
+        ],
+        "name": "097_trunc_mov",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "096_copy_xform"
+        ],
+        "name": "098_ds_t1w_preproc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform"
+        ],
+        "name": "099_apply_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "056_inu_n4_final",
+            "058_thr_brainmask"
+        ],
+        "name": "100_apply_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [],
+        "name": "101_fs_isrunning",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "047_recon_config",
+            "046_fov_check",
+            "045_anat_validate",
+            "101_fs_isrunning"
+        ],
+        "name": "102_autorecon1",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "102_autorecon1",
+            "045_anat_validate"
+        ],
+        "name": "103_fsnative2t1w_xfm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "103_fsnative2t1w_xfm"
+        ],
+        "name": "104_lta2itk_inv",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "104_lta2itk_inv",
+            "039_t1w_ref_dimensions"
+        ],
+        "name": "105_ds_fsnative_t1w",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "103_fsnative2t1w_xfm"
+        ],
+        "name": "106_t1w2fsnative_xfm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "106_t1w2fsnative_xfm"
+        ],
+        "name": "107_lta2itk_fwd",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "107_lta2itk_fwd",
+            "039_t1w_ref_dimensions"
+        ],
+        "name": "108_ds_t1w_fsnative",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "102_autorecon1",
+            "099_apply_mask"
+        ],
+        "name": "109_skull_strip_extern",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "109_skull_strip_extern"
+        ],
+        "name": "110_autorecon2_vol",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "110_autorecon2_vol"
+        ],
+        "name": "111_autorecon_surfs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "111_autorecon_surfs",
+            "047_recon_config"
+        ],
+        "name": "112_cortribbon",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "112_cortribbon"
+        ],
+        "name": "113_parcstats",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "113_parcstats"
+        ],
+        "name": "114_autorecon3",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "114_autorecon3"
+        ],
+        "name": "115_recon_report",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "115_recon_report"
+        ],
+        "name": "116_ds_recon_report",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "114_autorecon3"
+        ],
+        "name": "117_get_surfaces",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "117_get_surfaces"
+        ],
+        "name": "118_midthickness",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "118_midthickness",
+            "114_autorecon3"
+        ],
+        "name": "119_save_midthickness",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "117_get_surfaces",
+            "119_save_midthickness"
+        ],
+        "name": "120_surface_list",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "120_surface_list"
+        ],
+        "name": "121_fs2gii",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "121_fs2gii",
+            "103_fsnative2t1w_xfm"
+        ],
+        "name": "122_fix_surfs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "122_fix_surfs"
+        ],
+        "name": "123_name_surfs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "123_name_surfs",
+            "039_t1w_ref_dimensions",
+            "122_fix_surfs"
+        ],
+        "name": "124_ds_surfs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "114_autorecon3"
+        ],
+        "name": "125_fs_datasource",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "125_fs_datasource",
+            "096_copy_xform",
+            "103_fsnative2t1w_xfm"
+        ],
+        "name": "126_resample",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "126_resample"
+        ],
+        "name": "127_ds_t1w_fsaseg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform",
+            "126_resample"
+        ],
+        "name": "128_refine",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "000_split_desc",
+            "097_trunc_mov",
+            "128_refine"
+        ],
+        "name": "129_registration",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "129_registration",
+            "001_tf_select",
+            "128_refine"
+        ],
+        "name": "130_std_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "129_registration",
+            "001_tf_select",
+            "096_copy_xform"
+        ],
+        "name": "131_tpl_moving",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "130_std_mask",
+            "002_tf_select",
+            "131_tpl_moving"
+        ],
+        "name": "132_norm_msk",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "132_norm_msk"
+        ],
+        "name": "133_norm_rpt",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "133_norm_rpt"
+        ],
+        "name": "134_ds_std_t1w_report",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "042_raw_sources",
+            "039_t1w_ref_dimensions",
+            "128_refine"
+        ],
+        "name": "135_ds_t1w_mask",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform",
+            "128_refine"
+        ],
+        "name": "136_t1w_brain",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "136_t1w_brain",
+            "096_copy_xform",
+            "021_preproc_sbref_conversion"
+        ],
+        "name": "137_epi_reg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "014_preproc_conversion"
+        ],
+        "name": "138_apply_transform_dwi_file",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "138_apply_transform_dwi_file"
+        ],
+        "name": "139_ds_transformed_dwi",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "140_apply_transform_eval",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "140_apply_transform_eval"
+        ],
+        "name": "141_ds_tranformed_eval",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "142_apply_transform_evec",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "142_apply_transform_evec"
+        ],
+        "name": "143_ds_tranformed_evec",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "144_apply_transform_cs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "144_apply_transform_cs"
+        ],
+        "name": "145_ds_tranformed_cs",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "146_apply_transform_cp",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "146_apply_transform_cp"
+        ],
+        "name": "147_ds_tranformed_cp",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "148_apply_transform_cl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "148_apply_transform_cl"
+        ],
+        "name": "149_ds_tranformed_cl",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "150_apply_transform_rd",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "150_apply_transform_rd"
+        ],
+        "name": "151_ds_tranformed_rd",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "152_apply_transform_ad",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "152_apply_transform_ad"
+        ],
+        "name": "153_ds_tranformed_ad",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "154_apply_transform_adc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "154_apply_transform_adc"
+        ],
+        "name": "155_ds_tranformed_adc",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg",
+            "136_t1w_brain",
+            "025_tensor2metric"
+        ],
+        "name": "156_apply_transform_fa",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "156_apply_transform_fa"
+        ],
+        "name": "157_ds_tranformed_fa",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg"
+        ],
+        "name": "158_ds_epi_ref_to_T1w",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg"
+        ],
+        "name": "159_ds_epi_to_t1w_aff",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "137_epi_reg"
+        ],
+        "name": "160_invert_xfm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "160_invert_xfm"
+        ],
+        "name": "161_ds_t1w_to_epi_aff",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform",
+            "128_refine"
+        ],
+        "name": "162_applyrefined",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "162_applyrefined"
+        ],
+        "name": "163_t1w_dseg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "163_t1w_dseg"
+        ],
+        "name": "164_fast2bids",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "129_registration",
+            "001_tf_select",
+            "164_fast2bids"
+        ],
+        "name": "165_std_tpms",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "164_fast2bids"
+        ],
+        "name": "166_ds_t1w_tpms",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "163_t1w_dseg"
+        ],
+        "name": "167_lut_t1w_dseg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "129_registration",
+            "001_tf_select",
+            "167_lut_t1w_dseg"
+        ],
+        "name": "168_std_dseg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "130_std_mask",
+            "165_std_tpms",
+            "000_split_desc",
+            "129_registration",
+            "131_tpl_moving",
+            "168_std_dseg"
+        ],
+        "name": "169_outputnode",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "169_outputnode"
+        ],
+        "name": "170_ds_std2t1w_xfm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "169_outputnode"
+        ],
+        "name": "171_ds_t1w2std_xfm",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "096_copy_xform",
+            "128_refine",
+            "167_lut_t1w_dseg"
+        ],
+        "name": "172_seg_rpt",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "172_seg_rpt"
+        ],
+        "name": "173_ds_t1w_dseg_mask_report",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "167_lut_t1w_dseg"
+        ],
+        "name": "174_ds_t1w_dseg",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "114_autorecon3"
+        ],
+        "name": "175_fs_datasource",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "175_fs_datasource",
+            "096_copy_xform",
+            "103_fsnative2t1w_xfm"
+        ],
+        "name": "176_resample",
+        "size": 1
+    },
+    {
+        "group": 1,
+        "imports": [
+            "039_t1w_ref_dimensions",
+            "176_resample"
+        ],
+        "name": "177_ds_t1w_fsparc",
+        "size": 1
+    }
+]

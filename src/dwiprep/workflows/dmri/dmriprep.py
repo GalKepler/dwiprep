@@ -4,22 +4,17 @@ from typing import Tuple
 import nipype.pipeline.engine as pe
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
+from dwiprep.utils.inputs import INPUTNODE
+from dwiprep.utils.bids_query.utils import get_fieldmaps, add_fieldmap
 from dwiprep.interfaces.mrconvert import (
     MAP_KWARGS_TO_SUFFIXES,
-)
-from dwiprep.workflows.dmri.base import (
-    get_inputnode,
-    build_conversion_nodes,
-    generate_conversion_workflow,
-    build_backbone,
-    connect_tensor_wf,
 )
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 from dwiprep.workflows.dmri.utils.utils import (
     MANDATORY_ENTITIES,
     RECOMMENDED_ENTITIES,
 )
-
+from dwiprep.workflows.dmri.base import init_dwi_preproc_wf
 import warnings
 
 
@@ -46,6 +41,8 @@ class DmriPrep:
     }
     #: Output directory name
     OUTPUT_NAME = "dmriprep"
+    #: Scan-wise input node
+    INPUTNODE = INPUTNODE
 
     def __init__(
         self,
@@ -173,9 +170,7 @@ class DmriPrep:
                     + "\nWe highly encourage using this entities for preprocessing."
                 )
 
-    def data_to_input_node(
-        self, run_data: dict, session: str = None
-    ) -> pe.Node:
+    def data_to_input_node(self, run_data: str) -> pe.Node:
         """
         Generate a run-specific input node.
 
@@ -191,39 +186,41 @@ class DmriPrep:
         pe.Node
             An input node.
         """
-        inputnode = get_inputnode()
-        inputnode.inputs.participant_label = self.participant_label
-        inputnode.inputs.work_dir = (
-            Path(self.work_dir)
-            / "dmriprep_wf"
-            / f"sub-{self.participant_label}"
-        )
-        if session:
-            inputnode.inputs.session_id = session
-            inputnode.inputs.work_dir = (
-                inputnode.inputs.work_dir / f"ses-{session}"
+        inputnode = self.INPUTNODE
+        dwi_nifti, dwi_json, dwi_bvec, dwi_bval = [
+            run_data.get(key) for key in ["nifti", "json", "bvec", "bval"]
+        ]
+        if not all([run_data.values()]):
+            raise FileNotFoundError(
+                f"Could not found neccesary DWI-related files for subject {self.participant_label}."
             )
-        inputnode.inputs.bids_dir = self.bids_query.bids_dir
-        inputnode.inputs.destination = self.destination
-        inputnode.inputs.dwi = run_data.get("dwi").get("nifti")
-        inputnode.inputs.in_bval = run_data.get("dwi").get("bval")
-        inputnode.inputs.in_bvec = run_data.get("dwi").get("bvec")
-        inputnode.inputs.in_json = run_data.get("dwi").get("json")
-        if run_data.get("fmap_ap"):
-            inputnode.inputs.fmap_ap = run_data.get("fmap_ap").get("nifti")
-            inputnode.inputs.fmap_ap_json = run_data.get("fmap_ap").get("json")
-        if run_data.get("fmap_pa"):
-            inputnode.inputs.fmap_pa = run_data.get("fmap_pa").get("nifti")
-            inputnode.inputs.fmap_pa_json = run_data.get("fmap_pa").get("json")
+        inputnode.inputs.dwi_file = str(Path(dwi_nifti).absolute())
+        inputnode.inputs.in_bvec = str(Path(dwi_bvec).absolute())
+        inputnode.inputs.in_bval = str(Path(dwi_bval).absolute())
+        inputnode.inputs.in_json = str(Path(dwi_json).absolute())
+
+        # add fieldmaps
+        fieldmaps = get_fieldmaps(str(dwi_nifti), self.bids_query.layout)
+        for key, value in fieldmaps.items():
+            inputnode.set_input(key, value)
         return inputnode
 
-    def preprocess_sessions(self):
+    def init_workflow_per_dwi(self):
         # self.validate_session(self.session_data)
-        for dwi_file in self.session_data.get("dwi"):
-            session = self.infer_session(dwi_file)
-            run_data = self.session_data.copy()
-            run_data["dwi"] = dwi_file
-            inputnode = self.data_to_input_node(run_data, session)
-            conversion_wf = generate_conversion_workflow(inputnode, run_data)
-            cleaning_wf = build_backbone(conversion_wf)
-            tensor_estimation = connect_tensor_wf(inputnode, cleaning_wf)
+        dmriprep_wfs = []
+        for dwi_data in self.session_data.get("dwi"):
+            inputnode = self.data_to_input_node(dwi_data)
+            dmriprep_wf = init_dwi_preproc_wf(
+                dwi_data.get("nifti"),
+                inputnode,
+                self.destination,
+                self.work_dir,
+            )
+            dmriprep_wf.base_dir = self.work_dir
+            for node in dmriprep_wf.list_node_names():
+                if node.split(".")[-1].startswith("ds_"):
+                    dmriprep_wf.get_node(
+                        node
+                    ).interface.out_path_base = "dmriprep"
+            dmriprep_wfs.append(dmriprep_wf)
+        return dmriprep_wfs
