@@ -1,26 +1,39 @@
 import nipype.pipeline.engine as pe
-import nipype.interfaces.utility as niu
-from nipype.interfaces import mrtrix3 as mrt
+from dwiprep.workflows.dmri.pipelines.fmap_prep.nodes import (
+    INPUT_NODE,
+    OUTPUT_NODE,
+    MERGE_NODE,
+    MRCAT_NODE,
+)
+from dwiprep.workflows.dmri.pipelines.fmap_prep.edges import (
+    INPUT_TO_MERGE_EDGES,
+    MERGE_TO_MRCAT_EDGES,
+    MRCAT_TO_OUTPUT_EDGES,
+)
+
+PHASEDIFF = [
+    (INPUT_NODE, MERGE_NODE, INPUT_TO_MERGE_EDGES),
+    (MERGE_NODE, MRCAT_NODE, MERGE_TO_MRCAT_EDGES),
+    (MRCAT_NODE, OUTPUT_NODE, MRCAT_TO_OUTPUT_EDGES),
+]
 
 
-def init_phasediff_wf(name="phasediff_prep_wf"):
+def init_phasediff_wf(name="phasediff_prep_wf") -> pe.Workflow:
+    """
+    Initiates the preperation for SDC workflow.
+
+    Parameters
+    ----------
+    name : str, optional
+        Workflow's name, by default "phasediff_prep_wf"
+
+    Returns
+    -------
+    pe.Workflow
+        Initiated workflow for phasediff preperation for SDC.
+    """
     wf = pe.Workflow(name=name)
-    inputnode = pe.Node(
-        niu.IdentityInterface(fields=["fmap_ap", "fmap_pa"]),
-        name="inputnode",
-    )
-    merge_node = pe.Node(niu.Merge(numinputs=2), name="merge_files")
-    mrcat_node = pe.Node(mrt.MRCat(axis=3), name="mrcat")
-    outputnode = pe.Node(
-        niu.IdentityInterface(fields=["merged_phasediff"]), name="outputnode"
-    )
-    wf.connect(
-        [
-            (inputnode, merge_node, [("fmap_ap", "in1"), ("fmap_pa", "in2")]),
-            (merge_node, mrcat_node, [("out", "in_files")]),
-            (mrcat_node, outputnode, [("out_file", "merged_phasediff")]),
-        ]
-    )
+    wf.connect(PHASEDIFF)
     return wf
 
 
@@ -29,7 +42,32 @@ def add_fieldmaps_to_wf(
     conversion_wf: pe.Workflow,
     epi_ref_wf: pe.Workflow,
     phasediff_wf: pe.Workflow,
-):
+) -> list:
+    """
+    Adds the correct combination of SBRef/mean B0 images for SDC to the main workflow.
+
+    Parameters
+    ----------
+    inputnode : pe.Node
+        Main workflow's input node.
+    conversion_wf : pe.Workflow
+        Conversion-to-mif node.
+    epi_ref_wf : pe.Workflow
+        EPI reference node (Mean B0)
+    phasediff_wf : pe.Workflow
+        Phasediff preperation workflow
+
+    Returns
+    -------
+    list
+        List of tuples describing correct edges available within the dataset for SDC.
+
+    Raises
+    ------
+    NotImplementedError
+        [description]
+    """
+
     fmap_ap, fmap_pa = [
         getattr(inputnode.inputs, key, None) for key in ["fmap_ap", "fmap_pa"]
     ]
