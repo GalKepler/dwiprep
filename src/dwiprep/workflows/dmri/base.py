@@ -30,6 +30,7 @@ from nipype.pipeline.engine import workflows
 
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from dwiprep.interfaces.dds import DerivativesDataSink
+from dwiprep.workflows.dmri.pipelines import epi_ref
 
 
 def init_dwi_preproc_wf(
@@ -192,7 +193,8 @@ def init_dwi_preproc_wf(
     )
 
     # extract preprocessed mean b0
-    preproc_epi_ref_wf = init_epi_ref_wf(name="preprocessed_epi_ref_wf")
+    # preproc_epi_ref_wf = init_epi_ref_wf(name="preprocessed_epi_ref_wf")
+    preproc_epi_ref_wf = epi_ref_wf.clone(name="preprocessed_epi_ref_wf")
     workflow.connect(
         [
             (

@@ -1,3 +1,4 @@
+import nipype.pipeline.engine as pe
 from dwiprep.workflows.dmri.pipelines.epi_ref.nodes import (
     INPUT_NODE,
     OUTPUT_NODE,

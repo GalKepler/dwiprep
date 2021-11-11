@@ -76,9 +76,9 @@ class DmriPrepManager:
             t1w=t1w,
             **self.smriprep_kwargs,
         )
-        anat_preproc_wf.get_node(
-            "inputnode"
-        ).inputs.subject_id = participant_label
+        anat_preproc_wf.get_node("inputnode").inputs.subject_id = (
+            "sub-" + participant_label
+        )
 
         anat_preproc_wf.get_node("inputnode").inputs.t2w = t2w
         anat_preproc_wf.get_node("inputnode").inputs.t1w = t1w
@@ -152,6 +152,7 @@ class DmriPrepManager:
         subjects_wf = {}
         for subject in self.participant_labels:
             wf = self.init_subject_wf(subject)
+            wf.base_dir = self.work_dir
             anatomical_wf = self.init_anatomical_wf(subject)
             sessions = self.bids_query.get_sessions(subject)
             sessions_wfs = []

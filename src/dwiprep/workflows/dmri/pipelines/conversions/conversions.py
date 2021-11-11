@@ -1,3 +1,4 @@
+import nipype.pipeline.engine as pe
 from traits.trait_base import _Undefined
 from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
     MIF_INPUT_NODE,
