@@ -3,13 +3,13 @@ Nodes' configurations for *epi_eg* pipelines.
 """
 import nipype.pipeline.engine as pe
 from nipype.interfaces import utility as niu
-from nipype.interfaces import mrtrix3 as mrt
+from nipype.interfaces import fsl
 
-from dwiprep.workflows.dmri.pipelines.fmap_prep.configurations import (
+from dwiprep.workflows.coreg.pipelines.epi_reg.configurations import (
     INPUT_NODE_FIELDS,
     OUTPUT_NODE_FIELDS,
-    MERGE_KWARGS,
-    MRCAT_KWARGS,
+    EPIREG_KWARGS,
+    CONVERTXFM_KWARGS,
 )
 
 #: i/o
@@ -23,9 +23,9 @@ OUTPUT_NODE = pe.Node(
 )
 
 #: Building blocks
-MERGE_NODE = pe.Node(niu.Merge(**MERGE_KWARGS), name="merge_files")
+EPIREG_NODE = pe.Node(fsl.EpiReg(**EPIREG_KWARGS), name="epi_reg")
 
-MRCAT_NODE = pe.Node(
-    mrt.MRCat(**MRCAT_KWARGS),
-    name="mrcat",
+CONVERTXFM_NODE = pe.Node(
+    fsl.ConvertXFM(**CONVERTXFM_KWARGS),
+    name="invert_xfm",
 )

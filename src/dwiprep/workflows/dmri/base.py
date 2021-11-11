@@ -100,21 +100,16 @@ def init_dwi_preproc_wf(
     """
     from niworkflows.interfaces.nibabel import ApplyMask
     from dmriprep.utils.misc import sub_prefix as _prefix
-    from dwiprep.workflows.dmri.pipelines.conversions import (
+    from dwiprep.workflows.dmri.pipelines import (
         init_conversion_wf,
         init_nii_conversion_wf,
-    )
-    from dwiprep.workflows.dmri.pipelines.epi_ref import init_epi_ref_wf
-    from dwiprep.workflows.dmri.pipelines.fmap_prep import (
+        init_epi_ref_wf,
         init_phasediff_wf,
         add_fieldmaps_to_wf,
-    )
-    from dwiprep.workflows.dmri.pipelines.preprocess import init_preprocess_wf
-    from dwiprep.workflows.dmri.pipelines.tensor_estimation import (
+        init_preprocess_wf,
         init_tensor_wf,
     )
-
-    from dwiprep.workflows.coreg.pipelines.coregister import (
+    from dwiprep.workflows.coreg.pipelines import (
         init_epireg_wf,
         init_apply_transform,
     )
