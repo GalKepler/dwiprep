@@ -32,7 +32,7 @@ PREPROCESSING = [
 
 def init_preprocess_wf(name="preprocess_wf") -> pe.Workflow:
     """
-    Initiates the preprocessing workflow.
+    Initiates a preprocessing workflow.
 
     Parameters
     ----------

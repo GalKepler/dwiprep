@@ -1,15 +1,15 @@
 """
-Nodes' configurations for *preprocessing* pipelines.
+Nodes' configurations for *epi_eg* pipelines.
 """
 import nipype.pipeline.engine as pe
 from nipype.interfaces import utility as niu
 from nipype.interfaces import mrtrix3 as mrt
 
-from dwiprep.workflows.dmri.pipelines.tensor_estimation.configurations import (
+from dwiprep.workflows.dmri.pipelines.fmap_prep.configurations import (
     INPUT_NODE_FIELDS,
     OUTPUT_NODE_FIELDS,
-    DWI2TENSOR_KWARGS,
-    TENSOR2METRIC_KWARGS,
+    MERGE_KWARGS,
+    MRCAT_KWARGS,
 )
 
 #: i/o
@@ -23,9 +23,9 @@ OUTPUT_NODE = pe.Node(
 )
 
 #: Building blocks
-DWI2TENSOR_NODE = pe.Node(
-    mrt.FitTensor(**DWI2TENSOR_KWARGS), name="fit_tensor"
-)
-TENSOR2METRIC_NODE = pe.Node(
-    mrt.TensorMetrics(**TENSOR2METRIC_KWARGS), name="tensor2metric"
+MERGE_NODE = pe.Node(niu.Merge(**MERGE_KWARGS), name="merge_files")
+
+MRCAT_NODE = pe.Node(
+    mrt.MRCat(**MRCAT_KWARGS),
+    name="mrcat",
 )
