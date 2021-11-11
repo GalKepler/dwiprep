@@ -16,4 +16,3 @@ def init_derivatives_wf(name="dmri_derivatives_wf") -> pe.Workflow:
     pe.Workflow
         An initiated workflow for storing output files in their correct locations.
     """
-    
