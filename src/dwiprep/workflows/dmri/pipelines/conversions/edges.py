@@ -32,6 +32,7 @@ NII_INPUT_TO_PREPROC_SBREF_CONVERSION_EDGES = [
     ("epi_ref", "in_file"),
 ]
 
+NII_INPUT_TO_PHASEDIFF_CONVERSION_EDGES = [("phasediff", "in_file")]
 NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES = [
     ("out_file", "dwi_file"),
     ("out_bvec", "dwi_bvec"),
@@ -41,4 +42,8 @@ NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES = [
 NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES = [
     ("out_file", "epi_ref_file"),
     ("json_export", "epi_ref_json"),
+]
+NII_PHASEDIFF_CONVERSION_TO_OUTPUT_EDGES = [
+    ("out_file", "phasediff_file"),
+    ("json_export", "phasediff_json"),
 ]

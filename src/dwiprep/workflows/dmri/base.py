@@ -210,6 +210,16 @@ def init_dwi_preproc_wf(
                 [("outputnode.dwi_preproc", "inputnode.dwi_file")],
             ),
             (
+                phasediff_wf,
+                nii_conversion_wf,
+                [
+                    (
+                        "outputnode.merged_phasediff",
+                        "inputnode.phasediff",
+                    )
+                ],
+            ),
+            (
                 preproc_epi_ref_wf,
                 nii_conversion_wf,
                 [("outputnode.epi_ref_file", "inputnode.epi_ref")],
@@ -384,7 +394,6 @@ def init_dwi_preproc_wf(
         [(apply_transform_wf, dsink, [("outputnode.dwi_file", "in_file")])]
     )
     for metric in metrics:
-
         dsink = pe.Node(
             DerivativesDataSink(
                 base_directory=output_dir,

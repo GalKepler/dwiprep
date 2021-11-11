@@ -48,3 +48,7 @@ NII_PREPROC_SBREF_CONVERSION_NODE = pe.Node(
     mrt.MRConvert(out_file="sbref.nii.gz", json_export="sbref.json"),
     name="preproc_sbref_conversion",
 )
+NII_PHASEDIFF_CONVERSION_NODE = pe.Node(
+    mrt.MRConvert(out_file="phasediff.nii.gz", json_export="phasediff.json"),
+    name="phasediff_conversion",
+)

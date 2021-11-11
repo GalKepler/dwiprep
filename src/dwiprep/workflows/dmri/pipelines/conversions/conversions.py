@@ -10,6 +10,7 @@ from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
     NII_OUTPUT_NODE,
     NII_PREPROC_DWI_CONVERSION_NODE,
     NII_PREPROC_SBREF_CONVERSION_NODE,
+    NII_PHASEDIFF_CONVERSION_NODE,
 )
 from dwiprep.workflows.dmri.pipelines.conversions.edges import (
     MIF_INPUT_TO_DWI_CONVERSION_EDGES,
@@ -20,8 +21,13 @@ from dwiprep.workflows.dmri.pipelines.conversions.edges import (
     MIF_FMAP_PA_CONVERSION_TO_OUTPUT_EDGES,
     NII_INPUT_TO_PREPROC_DWI_CONVERSION_EDGES,
     NII_INPUT_TO_PREPROC_SBREF_CONVERSION_EDGES,
+    NII_INPUT_TO_PHASEDIFF_CONVERSION_EDGES,
     NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES,
     NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES,
+    NII_PHASEDIFF_CONVERSION_TO_OUTPUT_EDGES,
+)
+from dwiprep.workflows.dmri.pipelines.epi_ref.configurations import (
+    OUTPUT_NODE_FIELDS,
 )
 
 #: Conversion from NIfTI to .mif format.
@@ -72,6 +78,11 @@ NII_CONVERSION = [
     ),
     (
         NII_INPUT_NODE,
+        NII_PHASEDIFF_CONVERSION_NODE,
+        NII_INPUT_TO_PHASEDIFF_CONVERSION_EDGES,
+    ),
+    (
+        NII_INPUT_NODE,
         NII_PREPROC_SBREF_CONVERSION_NODE,
         NII_INPUT_TO_PREPROC_SBREF_CONVERSION_EDGES,
     ),
@@ -79,6 +90,11 @@ NII_CONVERSION = [
         NII_PREPROC_DWI_CONVERSION_NODE,
         NII_OUTPUT_NODE,
         NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES,
+    ),
+    (
+        NII_PHASEDIFF_CONVERSION_NODE,
+        NII_OUTPUT_NODE,
+        NII_PHASEDIFF_CONVERSION_TO_OUTPUT_EDGES,
     ),
     (
         NII_PREPROC_SBREF_CONVERSION_NODE,
