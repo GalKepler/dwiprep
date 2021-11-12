@@ -1,9 +1,8 @@
 """
 Configurations for *preprocessing* pipeline.
 """
-#: i/o
-INPUT_NODE_FIELDS = ["dwi_file"]
-OUTPUT_NODE_FIELDS = [
+
+METRICS = [
     "fa",
     "adc",
     "ad",
@@ -14,9 +13,13 @@ OUTPUT_NODE_FIELDS = [
     "evec",
     "eval",
 ]
+#: i/o
+INPUT_NODE_FIELDS = ["dwi_file"]
+OUTPUT_NODE_FIELDS = ["metrics"]
 
 #: Keyword arguments
 DWI2TENSOR_KWARGS = dict()
 TENSOR2METRIC_KWARGS = {
-    f"out_{metric}": f"{metric}.nii.gz" for metric in OUTPUT_NODE_FIELDS
+    f"out_{metric}": f"{metric}.nii.gz" for metric in METRICS
 }
+LISTIFY_KWARGS = dict(numinputs=len(METRICS))

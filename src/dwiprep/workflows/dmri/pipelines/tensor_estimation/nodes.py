@@ -10,6 +10,7 @@ from dwiprep.workflows.dmri.pipelines.tensor_estimation.configurations import (
     OUTPUT_NODE_FIELDS,
     DWI2TENSOR_KWARGS,
     TENSOR2METRIC_KWARGS,
+    LISTIFY_KWARGS,
 )
 
 #: i/o
@@ -29,3 +30,4 @@ DWI2TENSOR_NODE = pe.Node(
 TENSOR2METRIC_NODE = pe.Node(
     mrt.TensorMetrics(**TENSOR2METRIC_KWARGS), name="tensor2metric"
 )
+LISTIFY_NODE = pe.Node(niu.Merge(**LISTIFY_KWARGS), name="listify_metrics")

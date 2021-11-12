@@ -8,8 +8,8 @@ from dwiprep.workflows.dmri.pipelines.tensor_estimation.configurations import (
 #: i/o
 INPUT_TO_DWI2TENSOR_EDGES = [("dwi_file", "in_file")]
 DWI2TENSOR_TO_TENSOR2METRIC_EDGES = [("out_file", "in_file")]
-
+TENSOR2METRIC_TO_LISTIFY_EDGES = []
 #: all metrics measured
-TENSOR2METRIC_TO_OUTPUT_EDGES = []
-for key in TENSOR2METRIC_KWARGS:
-    TENSOR2METRIC_TO_OUTPUT_EDGES.append((key, key.split("_")[-1]))
+for input_num, key in enumerate(TENSOR2METRIC_KWARGS):
+    TENSOR2METRIC_TO_LISTIFY_EDGES.append((key, f"in{input_num+1}"))
+LISTIFY_TO_OUTPUT_EDGES = [("out", "metrics")]

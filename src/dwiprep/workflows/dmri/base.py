@@ -228,43 +228,43 @@ def init_dwi_preproc_wf(
     )
 
     # conform to BIDS derivatives format
-    for orig_file in [
-        "dwi_file",
-        "dwi_bvec",
-        "dwi_bval",
-        "dwi_json",
-        "epi_ref_file",
-        "epi_ref_json",
-    ]:
-        if "dwi" in orig_file:
-            suffix = "dwi"
-        elif "epi_ref" in orig_file:
-            suffix = "sbref"
-        if "_file" in orig_file:
-            compress = True
-        else:
-            compress = False
-        dsink = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                space="dwi",
-                desc="preproc",
-                suffix=suffix,
-                compress=compress,
-                source_file=str(dwi_file.absolute()),
-            ),
-            name=f"ds_{orig_file}",
-        )
-        workflow.connect(
-            [
-                (
-                    nii_conversion_wf,
-                    dsink,
-                    [(f"outputnode.{orig_file}", "in_file")],
-                ),
-            ]
-        )
-    tensor_wf, metrics = init_tensor_wf()
+    # for orig_file in [
+    #     "dwi_file",
+    #     "dwi_bvec",
+    #     "dwi_bval",
+    #     "dwi_json",
+    #     "epi_ref_file",
+    #     "epi_ref_json",
+    # ]:
+    #     if "dwi" in orig_file:
+    #         suffix = "dwi"
+    #     elif "epi_ref" in orig_file:
+    #         suffix = "sbref"
+    #     if "_file" in orig_file:
+    #         compress = True
+    #     else:
+    #         compress = False
+    #     dsink = pe.Node(
+    #         DerivativesDataSink(
+    #             base_directory=output_dir,
+    #             space="dwi",
+    #             desc="preproc",
+    #             suffix=suffix,
+    #             compress=compress,
+    #             source_file=str(dwi_file.absolute()),
+    #         ),
+    #         name=f"ds_{orig_file}",
+    #     )
+    #     workflow.connect(
+    #         [
+    #             (
+    #                 nii_conversion_wf,
+    #                 dsink,
+    #                 [(f"outputnode.{orig_file}", "in_file")],
+    #             ),
+    #         ]
+    #     )
+    tensor_wf = init_tensor_wf()
     workflow.connect(
         [
             (
@@ -274,27 +274,27 @@ def init_dwi_preproc_wf(
             ),
         ]
     )
-    for metric in metrics:
-        dsink = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                space="dwi",
-                suffix=metric,
-                datatype="tensor",
-                extension="nii.gz",
-                source_file=str(dwi_file.absolute()),
-            ),
-            name=f"ds_{metric}",
-        )
-        workflow.connect(
-            [
-                (
-                    tensor_wf,
-                    dsink,
-                    [(f"outputnode.{metric}", "in_file")],
-                ),
-            ]
-        )
+    # for metric in metrics:
+    #     dsink = pe.Node(
+    #         DerivativesDataSink(
+    #             base_directory=output_dir,
+    #             space="dwi",
+    #             suffix=metric,
+    #             datatype="tensor",
+    #             extension="nii.gz",
+    #             source_file=str(dwi_file.absolute()),
+    #         ),
+    #         name=f"ds_{metric}",
+    #     )
+    #     workflow.connect(
+    #         [
+    #             (
+    #                 tensor_wf,
+    #                 dsink,
+    #                 [(f"outputnode.{metric}", "in_file")],
+    #             ),
+    #         ]
+    #     )
     # Mask the T1w
     t1w_brain = pe.Node(ApplyMask(), name="t1w_brain")
     epi_reg_wf = init_epireg_wf()
@@ -324,42 +324,42 @@ def init_dwi_preproc_wf(
             ),
         ]
     )
-    for output, origin, target in zip(
-        ["epi_to_t1w_aff", "t1w_to_epi_aff"], ["epi", "T1w"], ["T1w", "epi"]
-    ):
-        dsink = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                dismiss_entities=["direction"],
-                suffix="xfm",
-                mode="image",
-                extension="txt",
-                to=target,
-                source_file=str(dwi_file.absolute()),
-            ),
-            name=f"ds_{output}",
-        )
-        setattr(dsink.inputs, "from", origin)
-        workflow.connect(
-            [
-                (epi_reg_wf, dsink, [(f"outputnode.{output}", "in_file")]),
-            ]
-        )
-    dsink = pe.Node(
-        DerivativesDataSink(
-            base_directory=output_dir,
-            suffix="sbref",
-            space="T1w",
-            extension="nii.gz",
-            desc="preproc",
-            source_file=str(dwi_file.absolute()),
-        ),
-        name=f"ds_epi_ref_to_T1w",
-    )
-    workflow.connect(
-        [(epi_reg_wf, dsink, [("outputnode.epi_to_t1w", "in_file")])]
-    )
-    apply_transform_wf = init_apply_transform(metrics.copy())
+    # for output, origin, target in zip(
+    #     ["epi_to_t1w_aff", "t1w_to_epi_aff"], ["epi", "T1w"], ["T1w", "epi"]
+    # ):
+    #     dsink = pe.Node(
+    #         DerivativesDataSink(
+    #             base_directory=output_dir,
+    #             dismiss_entities=["direction"],
+    #             suffix="xfm",
+    #             mode="image",
+    #             extension="txt",
+    #             to=target,
+    #             source_file=str(dwi_file.absolute()),
+    #         ),
+    #         name=f"ds_{output}",
+    #     )
+    #     setattr(dsink.inputs, "from", origin)
+    #     workflow.connect(
+    #         [
+    #             (epi_reg_wf, dsink, [(f"outputnode.{output}", "in_file")]),
+    #         ]
+    #     )
+    # dsink = pe.Node(
+    #     DerivativesDataSink(
+    #         base_directory=output_dir,
+    #         suffix="sbref",
+    #         space="T1w",
+    #         extension="nii.gz",
+    #         desc="preproc",
+    #         source_file=str(dwi_file.absolute()),
+    #     ),
+    #     name=f"ds_epi_ref_to_T1w",
+    # )
+    # workflow.connect(
+    #     [(epi_reg_wf, dsink, [("outputnode.epi_to_t1w", "in_file")])]
+    # )
+    apply_transform_wf = init_apply_transform()
     workflow.connect(
         [
             (
@@ -377,49 +377,54 @@ def init_dwi_preproc_wf(
                 apply_transform_wf,
                 [("out_file", "inputnode.t1w_brain")],
             ),
+            (
+                tensor_wf,
+                apply_transform_wf,
+                [("outputnode.metrics", "inputnode.tensor_metrics")],
+            ),
         ]
     )
-    dsink = pe.Node(
-        DerivativesDataSink(
-            base_directory=output_dir,
-            space="T1w",
-            desc="preproc",
-            suffix="dwi",
-            compress=True,
-            source_file=str(dwi_file.absolute()),
-        ),
-        name=f"ds_transformed_dwi",
-    )
-    workflow.connect(
-        [(apply_transform_wf, dsink, [("outputnode.dwi_file", "in_file")])]
-    )
-    for metric in metrics:
-        dsink = pe.Node(
-            DerivativesDataSink(
-                base_directory=output_dir,
-                space="T1w",
-                suffix=metric,
-                datatype="tensor",
-                extension="nii.gz",
-                compress=True,
-                source_file=str(dwi_file.absolute()),
-            ),
-            name=f"ds_tranformed_{metric}",
-        )
-        workflow.connect(
-            [
-                (
-                    tensor_wf,
-                    apply_transform_wf,
-                    [(f"outputnode.{metric}", f"inputnode.{metric}")],
-                ),
-                (
-                    apply_transform_wf,
-                    dsink,
-                    [(f"outputnode.{metric}", "in_file")],
-                ),
-            ]
-        )
+    # dsink = pe.Node(
+    #     DerivativesDataSink(
+    #         base_directory=output_dir,
+    #         space="T1w",
+    #         desc="preproc",
+    #         suffix="dwi",
+    #         compress=True,
+    #         source_file=str(dwi_file.absolute()),
+    #     ),
+    #     name=f"ds_transformed_dwi",
+    # )
+    # workflow.connect(
+    #     [(apply_transform_wf, dsink, [("outputnode.dwi_file", "in_file")])]
+    # )
+    # for metric in metrics:
+    #     dsink = pe.Node(
+    #         DerivativesDataSink(
+    #             base_directory=output_dir,
+    #             space="T1w",
+    #             suffix=metric,
+    #             datatype="tensor",
+    #             extension="nii.gz",
+    #             compress=True,
+    #             source_file=str(dwi_file.absolute()),
+    #         ),
+    #         name=f"ds_tranformed_{metric}",
+    #     )
+    #     workflow.connect(
+    #         [
+    #             (
+    #                 tensor_wf,
+    #                 apply_transform_wf,
+    #                 [(f"outputnode.{metric}", f"inputnode.{metric}")],
+    #             ),
+    #             (
+    #                 apply_transform_wf,
+    #                 dsink,
+    #                 [(f"outputnode.{metric}", "in_file")],
+    #             ),
+    #         ]
+    #     )
 
     return workflow
 

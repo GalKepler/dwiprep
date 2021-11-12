@@ -9,21 +9,20 @@ from dwiprep.workflows.dmri.pipelines.tensor_estimation.nodes import (
     OUTPUT_NODE,
     DWI2TENSOR_NODE,
     TENSOR2METRIC_NODE,
+    LISTIFY_NODE,
 )
 from dwiprep.workflows.dmri.pipelines.tensor_estimation.edges import (
     INPUT_TO_DWI2TENSOR_EDGES,
     DWI2TENSOR_TO_TENSOR2METRIC_EDGES,
-    TENSOR2METRIC_TO_OUTPUT_EDGES,
+    TENSOR2METRIC_TO_LISTIFY_EDGES,
+    LISTIFY_TO_OUTPUT_EDGES,
 )
 
 TENSOR_ESTIMATION = [
     (INPUT_NODE, DWI2TENSOR_NODE, INPUT_TO_DWI2TENSOR_EDGES),
     (DWI2TENSOR_NODE, TENSOR2METRIC_NODE, DWI2TENSOR_TO_TENSOR2METRIC_EDGES),
-    (
-        TENSOR2METRIC_NODE,
-        OUTPUT_NODE,
-        TENSOR2METRIC_TO_OUTPUT_EDGES,
-    ),
+    (TENSOR2METRIC_NODE, LISTIFY_NODE, TENSOR2METRIC_TO_LISTIFY_EDGES),
+    (LISTIFY_NODE, OUTPUT_NODE, LISTIFY_TO_OUTPUT_EDGES),
 ]
 
 
@@ -44,4 +43,4 @@ def init_tensor_wf(name="tensor_estimation_wf") -> pe.Workflow:
 
     wf = pe.Workflow(name=name)
     wf.connect(TENSOR_ESTIMATION)
-    return wf, OUTPUT_NODE_FIELDS
+    return wf
