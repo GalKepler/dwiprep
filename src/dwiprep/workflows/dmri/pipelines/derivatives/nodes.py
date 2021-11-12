@@ -94,4 +94,3 @@ NATIVE_TENSOR_NODE = pe.MapNode(
     iterfield=["in_file"],
 )
 NATIVE_TENSOR_WF = pe.Workflow(name="ds_native_tensor_wf")
-

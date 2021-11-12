@@ -30,6 +30,7 @@ PHASEDIFF_KWARGS = dict(
     space="orig",
     desc="phasediff",
     suffix="fieldmap",
+    compress=True,
     dismiss_entities=["direction"],
 )
 
@@ -38,29 +39,44 @@ NATIVE_DWI_PREPROC_KWARGS = dict(
     space="orig",
     desc="preproc",
     suffix="dwi",
+    compress=None,
 )
 COREG_DWI_PREPROC_KWARGS = dict(
     datatype="dwi",
     space="anat",
     desc="preproc",
     suffix="dwi",
+    compress=None,
 )
 NATIVE_SBREF_PREPROC_KWARGS = dict(
-    datatype="dwi", space="orig", desc="preproc", suffix="epiref"
+    datatype="dwi",
+    space="orig",
+    desc="preproc",
+    suffix="epiref",
+    compress=None,
 )
 COREG_SBREF_PREPROC_KWARGS = dict(
     datatype="dwi",
     space="anat",
     desc="preproc",
     suffix="epiref",
+    compress=None,
 )
 EPI_TO_T1_AFF_KWARGS = dict(
-    datatype="dwi", suffix="xfm", extension=".txt", to="T1w"
+    datatype="dwi",
+    suffix="xfm",
+    extension=".txt",
+    to="T1w",
+    compress=False,
 )
 EPI_TO_T1_AFF_KWARGS["from"] = "epiref"
 
 T1_to_EPI_AFF_KWARGS = dict(
-    datatype="dwi", suffix="xfm", extension=".txt", to="epiref"
+    datatype="dwi",
+    suffix="xfm",
+    extension=".txt",
+    to="epiref",
+    compress=False,
 )
 T1_to_EPI_AFF_KWARGS["from"] = "T1w"
 
