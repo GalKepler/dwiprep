@@ -32,7 +32,7 @@ def infer_metric(in_file: str) -> str:
     from pathlib import Path
 
     file_name = Path(in_file).name
-    return file_name.split(".")[0].lower()
+    return file_name.split(".")[0].lower(), in_file
 
 
 INPUT_NODE = pe.Node(
@@ -92,7 +92,9 @@ T1_TO_EPI_NODE = pe.Node(
 #: tensor-derived
 NATIVE_INFER_METRIC_NODE = pe.MapNode(
     niu.Function(
-        input_names=["in_file"], output_names=["metric"], function=infer_metric
+        input_names=["in_file"],
+        output_names=["metric", "in_file"],
+        function=infer_metric,
     ),
     name="native_infer_metric",
     iterfield=["in_file"],
@@ -100,7 +102,7 @@ NATIVE_INFER_METRIC_NODE = pe.MapNode(
 NATIVE_TENSOR_NODE = pe.MapNode(
     DerivativesDataSink(**NATIVE_TENSOR_KWARGS),
     name="ds_native_tensor",
-    iterfield=["in_file"],
+    iterfield=["in_file", "suffix"],
 )
 NATIVE_TENSOR_WF = pe.Workflow(name="ds_native_tensor_wf")
 NATIVE_TENSOR_WF.connect(
@@ -114,7 +116,9 @@ NATIVE_TENSOR_WF.connect(
 )
 COREG_INFER_METRIC_NODE = pe.MapNode(
     niu.Function(
-        input_names=["in_file"], output_names=["metric"], function=infer_metric
+        input_names=["in_file"],
+        output_names=["metric", "in_file"],
+        function=infer_metric,
     ),
     name="coreg_infer_metric",
     iterfield=["in_file"],
@@ -122,7 +126,7 @@ COREG_INFER_METRIC_NODE = pe.MapNode(
 COREG_TENSOR_NODE = pe.MapNode(
     DerivativesDataSink(**COREG_TENSOR_KWARGS),
     name="ds_coreg_tensor",
-    iterfield=["in_file"],
+    iterfield=["in_file", "suffix"],
 )
 COREG_TENSOR_WF = pe.Workflow(name="ds_coreg_tensor_wf")
 COREG_TENSOR_WF.connect(

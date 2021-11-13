@@ -61,9 +61,13 @@ INPUT_TO_T1_TO_EPI_EDGES = [
 
 #: Tensor-derived metrics: native
 INPUT_TO_NATIVE_TENSOR_EDGES = [
-    ("native_tensor_metrics", "native_infer_metric.in_file")
+    ("native_tensor_metrics", "native_infer_metric.in_file"),
+    ("source_file", "ds_native_tensor.source_file"),
+    ("base_directory", "ds_native_tensor.base_directory"),
 ]
 #: Tensor-derived metrics: coreg
 INPUT_TO_COREG_TENSOR_EDGES = [
-    ("coreg_tensor_metrics", "coreg_infer_metric.in_file")
+    ("coreg_tensor_metrics", "coreg_infer_metric.in_file"),
+    ("source_file", "ds_coreg_tensor.source_file"),
+    ("base_directory", "ds_coreg_tensor.base_directory"),
 ]

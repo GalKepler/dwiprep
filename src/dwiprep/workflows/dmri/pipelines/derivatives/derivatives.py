@@ -1,5 +1,4 @@
 import nipype.pipeline.engine as pe
-from nipype.interfaces import utility as niu
 from dwiprep.workflows.dmri.pipelines.derivatives.nodes import (
     INPUT_NODE,
     PHASEDIFF_LIST_NODE,
