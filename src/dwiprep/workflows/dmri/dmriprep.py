@@ -5,7 +5,7 @@ import nipype.pipeline.engine as pe
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.utils.inputs import INPUTNODE
-from dwiprep.utils.bids_query.utils import get_fieldmaps, add_fieldmap
+from dwiprep.utils.bids_query.utils import get_fieldmaps
 from dwiprep.interfaces.mrconvert import (
     MAP_KWARGS_TO_SUFFIXES,
 )
@@ -50,45 +50,14 @@ class DmriPrep:
         session_data: dict,
         participant_label: str,
         destination: str,
-        session: str = None,
         work_dir: str = None,
     ) -> None:
         """[summary]"""
         self.bids_query = bids_query
         self.session_data = session_data
         self.participant_label = participant_label
-        self.session = session
-        destination = Path(destination) / self.OUTPUT_NAME
         self.destination = destination
         self.work_dir = self.validate_work_dir(destination, work_dir)
-        # self.work_dir, self.destination = self.set_destinations(
-        #     destination, work_dir
-        # )
-
-    def infer_session(self, dwi: dict):
-        """
-        Attempt to infer session's id even if not given one.
-
-        Parameters
-        ----------
-        dwi : dict
-            A dictionary of dwi-related files (from a BIDS-compatible dataset)
-        session : str, optional
-            Session's identifier, by default None
-
-        Returns
-        -------
-        str
-            Session's identifer if available for *dwi*.
-        """
-        nifti = dwi.get("nifti")
-        if not self.session:
-            session = self.bids_query.layout.parse_file_entities(nifti).get(
-                "session"
-            )
-            return session
-        else:
-            return self.session
 
     def validate_work_dir(self, destination: str, work_dir: str = None):
         """
@@ -109,33 +78,6 @@ class DmriPrep:
             if work_dir is not None
             else str(Path(destination).parent / "work")
         )
-
-    def set_destinations(
-        self, destination: str, work_dir: str = None
-    ) -> Tuple[str, str]:
-        """
-        Set session/subject-speicifc working and destination directories
-
-        Parameters
-        ----------
-        destination : str
-            Path to pipeline's outputs
-        work_dir : str, optional
-            Path to pipeline's working directory, by default None
-
-        Returns
-        -------
-        Tuple[str,str]
-            Paths to subject/session-specific working an target directories.
-        """
-        work_dir = self.validate_work_dir(destination, work_dir)
-        base_directory = Path(work_dir) / f"sub-{self.participant_label}"
-        output_directory = Path(destination) / f"sub-{self.participant_label}"
-        if self.session:
-            base_directory = base_directory / f"ses-{self.session}"
-
-            output_directory = output_directory / f"ses-{self.session}"
-        return base_directory, output_directory
 
     def validate_session(self, session_data: dict) -> bool:
         """
@@ -187,6 +129,7 @@ class DmriPrep:
             An input node.
         """
         inputnode = self.INPUTNODE
+        inputnode.inputs.output_dir = self.destination
         dwi_nifti, dwi_json, dwi_bvec, dwi_bval = [
             run_data.get(key) for key in ["nifti", "json", "bvec", "bval"]
         ]
@@ -206,7 +149,6 @@ class DmriPrep:
         return inputnode
 
     def init_workflow_per_dwi(self):
-        # self.validate_session(self.session_data)
         dmriprep_wfs = []
         for dwi_data in self.session_data.get("dwi"):
             inputnode = self.data_to_input_node(dwi_data)
