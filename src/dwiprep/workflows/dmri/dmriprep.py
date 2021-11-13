@@ -129,6 +129,7 @@ class DmriPrep:
             An input node.
         """
         inputnode = self.INPUTNODE
+        inputnode.inputs.output_dir = self.destination
         dwi_nifti, dwi_json, dwi_bvec, dwi_bval = [
             run_data.get(key) for key in ["nifti", "json", "bvec", "bval"]
         ]

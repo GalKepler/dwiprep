@@ -4,6 +4,7 @@ import nipype.interfaces.utility as niu
 INPUTNODE = pe.Node(
     niu.IdentityInterface(
         fields=[
+            "output_dir",
             # DWI
             "dwi",
             "in_bvec",

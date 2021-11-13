@@ -26,9 +26,6 @@ from dwiprep.workflows.dmri.pipelines.conversions.edges import (
     NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES,
     NII_PHASEDIFF_CONVERSION_TO_OUTPUT_EDGES,
 )
-from dwiprep.workflows.dmri.pipelines.epi_ref.configurations import (
-    OUTPUT_NODE_FIELDS,
-)
 
 #: Conversion from NIfTI to .mif format.
 MIF_DWI_CONVERSION = [

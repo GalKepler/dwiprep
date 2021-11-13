@@ -30,7 +30,8 @@ from nipype.pipeline.engine import workflows
 
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 from dwiprep.interfaces.dds import DerivativesDataSink
-from dwiprep.workflows.dmri.pipelines import epi_ref
+from dwiprep.workflows.coreg.pipelines import apply_transform
+from dwiprep.workflows.dmri.pipelines import derivatives, epi_ref
 
 
 def init_dwi_preproc_wf(
@@ -113,6 +114,9 @@ def init_dwi_preproc_wf(
         init_epireg_wf,
         init_apply_transform,
     )
+    from dwiprep.workflows.dmri.pipelines.derivatives import (
+        init_derivatives_wf,
+    )
 
     # from dmriprep.workflows.dwi.outputs import (
     #     init_dwi_derivatives_wf,
@@ -125,6 +129,20 @@ def init_dwi_preproc_wf(
     workflow = Workflow(name=_get_wf_name(dwi_file.name))
     workflow.base_dir = work_dir
 
+    # Initiate a workflow to store derivatives
+    derivatives_wf = init_derivatives_wf()
+    workflow.connect(
+        [
+            (
+                inputnode,
+                derivatives_wf,
+                [
+                    ("dwi_file", "inputnode.source_file"),
+                    ("output_dir", "inputnode.base_directory"),
+                ],
+            )
+        ]
+    )
     # convert to mif format
     conversion_wf = init_conversion_wf(inputnode)
     workflow.connect(
@@ -226,6 +244,48 @@ def init_dwi_preproc_wf(
             ),
         ]
     )
+    workflow.connect(
+        [
+            (
+                nii_conversion_wf,
+                derivatives_wf,
+                [
+                    (
+                        "outputnode.dwi_file",
+                        "inputnode.native_dwi_preproc_file",
+                    ),
+                    (
+                        "outputnode.dwi_json",
+                        "inputnode.native_dwi_preproc_json",
+                    ),
+                    (
+                        "outputnode.dwi_bvec",
+                        "inputnode.native_dwi_preproc_bvec",
+                    ),
+                    (
+                        "outputnode.dwi_bval",
+                        "inputnode.native_dwi_preproc_bval",
+                    ),
+                    (
+                        "outputnode.phasediff_file",
+                        "inputnode.phasediff_file",
+                    ),
+                    (
+                        "outputnode.phasediff_json",
+                        "inputnode.phasediff_json",
+                    ),
+                    (
+                        "outputnode.epi_ref_file",
+                        "inputnode.native_epi_ref_file",
+                    ),
+                    (
+                        "outputnode.epi_ref_json",
+                        "inputnode.native_epi_ref_json",
+                    ),
+                ],
+            )
+        ]
+    )
 
     # conform to BIDS derivatives format
     # for orig_file in [
@@ -271,6 +331,11 @@ def init_dwi_preproc_wf(
                 preprocess_wf,
                 tensor_wf,
                 [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            ),
+            (
+                tensor_wf,
+                derivatives_wf,
+                [("outputnode.metrics", "inputnode.native_tensor_metrics")],
             ),
         ]
     )
@@ -322,6 +387,19 @@ def init_dwi_preproc_wf(
                 epi_reg_wf,
                 [("outputnode.epi_ref_file", "inputnode.in_file")],
             ),
+        ]
+    )
+    workflow.connect(
+        [
+            (
+                epi_reg_wf,
+                derivatives_wf,
+                [
+                    ("outputnode.epi_to_t1w_aff", "inputnode.epi_to_t1w_aff"),
+                    ("outputnode.t1w_to_epi_aff", "inputnode.t1w_to_epi_aff"),
+                    ("outputnode.epi_to_t1w", "inputnode.coreg_epi_ref_file"),
+                ],
+            )
         ]
     )
     # for output, origin, target in zip(
@@ -382,6 +460,24 @@ def init_dwi_preproc_wf(
                 apply_transform_wf,
                 [("outputnode.metrics", "inputnode.tensor_metrics")],
             ),
+        ]
+    )
+    workflow.connect(
+        [
+            (
+                apply_transform_wf,
+                derivatives_wf,
+                [
+                    (
+                        "outputnode.tensor_metrics",
+                        "inputnode.coreg_tensor_metrics",
+                    ),
+                    (
+                        "outputnode.dwi_file",
+                        "inputnode.coreg_dwi_preproc_file",
+                    ),
+                ],
+            )
         ]
     )
     # dsink = pe.Node(

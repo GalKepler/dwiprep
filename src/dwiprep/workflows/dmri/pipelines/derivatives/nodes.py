@@ -40,31 +40,40 @@ INPUT_NODE = pe.Node(
 )
 
 #: phasediff
-PHASEDIFF_NODE = pe.MapNode(
+PHASEDIFF_LIST_NODE = pe.Node(
+    niu.Merge(numinputs=2), name="list_phasediff_inputs"
+)
+PHASEDIFF_DDS_NODE = pe.MapNode(
     DerivativesDataSink(**PHASEDIFF_KWARGS),
     name="ds_phasediff",
     iterfield=["in_file"],
 )
 
 #: DWI
-NATIVE_DWI_NODE = pe.MapNode(
+NATIVE_DWI_LIST_NODE = pe.Node(
+    niu.Merge(numinputs=4), name="list_native_dwi_inputs"
+)
+NATIVE_DWI_DDS_NODE = pe.MapNode(
     DerivativesDataSink(**NATIVE_DWI_PREPROC_KWARGS),
     name="ds_native_dwi",
     iterfield=["in_file"],
 )
-COREG_DWI_NODE = pe.MapNode(
+COREG_DWI_DDS_NODE = pe.Node(
     DerivativesDataSink(**COREG_DWI_PREPROC_KWARGS),
     name="ds_coreg_dwi",
-    iterfield=["in_file"],
 )
 
 #: EPI reference
-NATIVE_SBREF_NODE = pe.MapNode(
+NATIVE_SBREF_LIST_NODE = pe.Node(
+    niu.Merge(numinputs=2), name="list_native_sbref_inputs"
+)
+NATIVE_SBREF_DDS_NODE = pe.MapNode(
     DerivativesDataSink(**NATIVE_SBREF_PREPROC_KWARGS),
     name="ds_native_sbref",
     iterfield=["in_file"],
 )
-COREG_SBREF_NODE = pe.MapNode(
+
+COREG_SBREF_DDS_NODE = pe.MapNode(
     DerivativesDataSink(**COREG_SBREF_PREPROC_KWARGS),
     name="ds_coreg_sbref",
     iterfield=["in_file"],
@@ -81,16 +90,47 @@ T1_TO_EPI_NODE = pe.Node(
 )
 
 #: tensor-derived
-INFER_METRIC_NODE = pe.MapNode(
+NATIVE_INFER_METRIC_NODE = pe.MapNode(
     niu.Function(
         input_names=["in_file"], output_names=["metric"], function=infer_metric
     ),
-    name="infer_metric",
+    name="native_infer_metric",
     iterfield=["in_file"],
 )
 NATIVE_TENSOR_NODE = pe.MapNode(
     DerivativesDataSink(**NATIVE_TENSOR_KWARGS),
-    name="ds_t1_to_epi_aff",
+    name="ds_native_tensor",
     iterfield=["in_file"],
 )
 NATIVE_TENSOR_WF = pe.Workflow(name="ds_native_tensor_wf")
+NATIVE_TENSOR_WF.connect(
+    [
+        (
+            NATIVE_INFER_METRIC_NODE,
+            NATIVE_TENSOR_NODE,
+            [("metric", "suffix"), ("in_file", "in_file")],
+        ),
+    ]
+)
+COREG_INFER_METRIC_NODE = pe.MapNode(
+    niu.Function(
+        input_names=["in_file"], output_names=["metric"], function=infer_metric
+    ),
+    name="coreg_infer_metric",
+    iterfield=["in_file"],
+)
+COREG_TENSOR_NODE = pe.MapNode(
+    DerivativesDataSink(**COREG_TENSOR_KWARGS),
+    name="ds_coreg_tensor",
+    iterfield=["in_file"],
+)
+COREG_TENSOR_WF = pe.Workflow(name="ds_coreg_tensor_wf")
+COREG_TENSOR_WF.connect(
+    [
+        (
+            COREG_INFER_METRIC_NODE,
+            COREG_TENSOR_NODE,
+            [("metric", "suffix"), ("in_file", "in_file")],
+        ),
+    ]
+)
