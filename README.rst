@@ -1,6 +1,5 @@
-=======
 *DWIPrep*: A Robust Preprocessing Pipeline for dMRI Data
-=======
+========================================================
 
 
 .. image:: https://img.shields.io/pypi/v/dwiprep.svg
