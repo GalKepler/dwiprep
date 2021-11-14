@@ -32,7 +32,10 @@ def infer_metric(in_file: str) -> str:
     from pathlib import Path
 
     file_name = Path(in_file).name
-    return file_name.split(".")[0].lower(), in_file
+    suffix = file_name.split(".")[0].lower()
+    if "_" in suffix:
+        suffix = suffix.split("_")[0]
+    return suffix, in_file
 
 
 INPUT_NODE = pe.Node(

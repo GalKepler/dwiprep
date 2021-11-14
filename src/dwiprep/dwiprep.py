@@ -2,34 +2,105 @@
 from pathlib import Path
 import os
 import nipype.pipeline.engine as pe
+from bids import BIDSLayout
+from typing import Union, Any, Iterable
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.dmriprep import DmriPrep
 
 from smriprep.workflows.anatomical import init_anat_preproc_wf
+from dwiprep.workflows.dmri.utils.utils import (
+    OUTPUTS,
+)
 
 
 class DmriPrepManager:
     #: Output directory name
     OUTPUT_NAME = "dmriprep"
+    #: SmriPrep output pattern.
+    SMRIPREP_OUTPUT_PATTERN: str = (
+        "{main_dir}/**/{sub_dir}/sub-{subject_id}_{session_id}_{output_id}"
+    )
+
+    #: FreeSurfer output pattern.
+    FS_OUTPUT_PATTERN: str = "{main_dir}/sub-{subject_id}/**/*{output_id}"
+
+    #: Session results pattern.
+    SESSION_PATTERN: str = "dmriprep/sub-{subject_id}/ses-*"
+
+    #: Expected outputs.
+    OUTPUTS = OUTPUTS
 
     def __init__(
         self,
-        bids_query: BidsQuery,
+        bids_dir: Union[BIDSLayout, Path, str],
         destination: str,
+        dwi_identifier: dict = {},
+        fmap_identifier: dict = {},
+        t1w_identifier: dict = {},
+        t2w_identifier: dict = {},
         smriprep_kwargs: dict = {},
+        participant_label: Union[str, list] = None,
+        bids_validate: bool = True,
         fs_subjects_dir: str = None,
         work_dir: str = None,
     ) -> None:
         """[summary]"""
-        self.bids_query = bids_query
-        self.participant_labels = bids_query.participant_labels
+        self.bids_query = self.init_bids_query(
+            bids_dir,
+            dwi_identifier,
+            fmap_identifier,
+            t1w_identifier,
+            t2w_identifier,
+            participant_label,
+            bids_validate,
+        )
+        self.participant_labels = self.bids_query.participant_labels
         self.smriprep_kwargs = smriprep_kwargs
         self.destination = destination
         self.fs_subjects_dir = fs_subjects_dir or os.environ.get(
             "SUBJECTS_DIR"
         )
         self.work_dir = self.validate_work_dir(destination, work_dir)
+
+    def init_bids_query(
+        self,
+        bids_dir: Union[BIDSLayout, Path, str],
+        dwi_identifier: dict = {},
+        fmap_identifier: dict = {},
+        t1w_identifier: dict = {},
+        t2w_identifier: dict = {},
+        participant_label: Union[str, list] = None,
+        bids_validate: bool = True,
+    ):
+        """[summary]
+
+        Parameters
+        ----------
+        bids_dir : Union[BIDSLayout, Path, str]
+            [description]
+        dwi_identifier : dict, optional
+            [description], by default {}
+        fmap_identifier : dict, optional
+            [description], by default {}
+        t1w_identifier : dict, optional
+            [description], by default {}
+        t2w_identifier : dict, optional
+            [description], by default {}
+        participant_label : Union[str, list], optional
+            [description], by default None
+        bids_validate : bool, optional
+            [description], by default True
+        """
+        return BidsQuery(
+            bids_dir,
+            dwi_identifier,
+            fmap_identifier,
+            t1w_identifier,
+            t2w_identifier,
+            participant_label,
+            bids_validate,
+        )
 
     def validate_work_dir(self, destination: str, work_dir: str = None):
         """
@@ -176,3 +247,133 @@ class DmriPrepManager:
                 )
             subjects_wf[subject] = wf
         return subjects_wf
+
+    def run(self):
+        subjects_wf = self.preprocess_subjects()
+        for subject, workflow in subjects_wf.items():
+            workflow.run()
+
+    def generate_fs_outputs(
+        self, main_dir: str, subject_id: str, output_id: str
+    ) -> Iterable[Path]:
+        """
+        Generate FreeSurfer output paths.
+
+        Parameters
+        ----------
+        main_dir : str
+            Main output directory
+        output_id : str
+            Output file name pattern
+
+        Yields
+        -------
+        Path
+            Output paths
+        """
+        pattern = self.FS_OUTPUT_PATTERN.format(
+            main_dir=main_dir, subject_id=subject_id, output_id=output_id
+        )
+        return Path(self.destination).absolute().rglob(pattern)
+
+    def generate_smriprep_outputs(
+        self,
+        main_dir: str,
+        sub_dir: str,
+        subject_id: str,
+        session_id: str,
+        output_id: str,
+    ) -> Iterable[Path]:
+        """
+        Generate smriprep output paths.
+
+        Parameters
+        ----------
+        main_dir : str
+            Main output directory
+        sub_dir : str
+            Results sub-directory name
+        subject_id : str
+            String subject ID
+        session_id : str
+            String session ID
+        output_id : str
+            Output file name pattern
+
+        Yields
+        -------
+        Path
+            Output paths
+        """
+        pattern = self.SMRIPREP_OUTPUT_PATTERN.format(
+            main_dir=main_dir,
+            sub_dir=sub_dir,
+            subject_id=subject_id,
+            session_id=session_id,
+            output_id=output_id,
+        )
+
+        return Path(self.destination).absolute().rglob(pattern)
+
+    def find_output(
+        self, partial_output: str, subject_id: str, session_id: str
+    ):
+        """
+        uses the destination and some default dictionary to locate specific
+        output files of *smriprep*.
+
+        Parameters
+        ----------
+        partial_output : str
+            A string that identifies a specific output
+        subject_id : str
+            Subject string ID
+        session_id : str
+            Session string ID
+        """
+        main_dir, sub_dir, output_id = self.OUTPUTS.get(partial_output)
+        if main_dir == "freesurfer":
+            outputs = list(
+                self.generate_fs_outputs(main_dir, subject_id, output_id)
+            )
+        elif main_dir == "dmriprep":
+            outputs = list(
+                self.generate_smriprep_outputs(
+                    main_dir, sub_dir, subject_id, session_id, output_id
+                )
+            )
+        # if len(outputs) == 1:
+        #     return str(outputs[0])
+        # elif len(outputs) > 1:
+        if ("native" in partial_output) and (
+            "transform" not in partial_output
+        ):
+            return [str(f) for f in outputs if ("MNI" not in f.name)]
+        return [str(f) for f in outputs]
+
+    def generate_output_dict(self) -> dict:
+        """
+        Generates a dictionary of the expected output file paths by key.
+
+        Returns
+        -------
+        dict
+            Output files by key
+        """
+        output_dict = {}
+        subject_ids = self.participant_labels
+        subject_ids = (
+            subject_ids if isinstance(subject_ids, list) else [subject_ids]
+        )
+        for subject_id in subject_ids:
+            output_dict[subject_id] = {}
+            # session_pattern = self.SESSION_PATTERN.format(
+            #     subject_id=subject_id
+            # )
+            for key in self.OUTPUTS:
+                output_dict[subject_id][key] = self.find_output(
+                    key, subject_id, "*"
+                )
+        if len(output_dict) == 1:
+            return output_dict.get(subject_id)
+        return output_dict
