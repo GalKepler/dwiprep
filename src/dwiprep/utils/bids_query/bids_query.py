@@ -3,19 +3,19 @@ Definition of the data collection and validation functions used by the DWIprep
 preprocessing workflow.
 """
 from pathlib import Path
-from typing import Union
+from typing import List, Union
 
 from bids import BIDSLayout
 from bids.layout.models import BIDSFile
 
 from dwiprep.utils.bids_query.utils import (
     DWI_QUERY,
+    ENTITY_PATTERN,
+    FILE_EXTENSIONS,
+    FILE_TYPES_BY_EXTENSIONS,
     FMAP_QUERY,
     T1W_QUERY,
     T2W_QUERY,
-    FILE_TYPES_BY_EXTENSIONS,
-    FILE_EXTENSIONS,
-    ENTITY_PATTERN,
     rename_session_data_by_fieldmap,
 )
 
@@ -74,7 +74,7 @@ class BidsQuery:
         self.queries = self.set_queries(
             dwi_identifier, fmap_identifier, t1w_identifier, t2w_identifier
         )
-        self.participant_labels = self.find_participants(participant_label)
+        self.participant_label = participant_label
 
     def find_participants(
         self, participant_label: Union[str, list] = None
@@ -283,7 +283,7 @@ class BidsQuery:
             valid.append(pattern in file_name)
         return all(valid)
 
-    def get_associated(self, file_name: str) -> list[BIDSFile]:
+    def get_associated(self, file_name: str) -> List[BIDSFile]:
         """Get all files assocated to *file_name*.
 
         Parameters
@@ -347,3 +347,15 @@ class BidsQuery:
             a BIDSLayout instance describing *self.bids_dir*
         """
         return self.get_layout()
+
+    @property
+    def participant_labels(self) -> list:
+        """
+        Return available subjects from *self.layout* or given list of subjects.
+
+        Returns
+        -------
+        list
+            A list of subjects' identifiers available in *self.layout*
+        """
+        return self.find_participants(self.participant_label)

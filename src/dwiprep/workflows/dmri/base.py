@@ -21,17 +21,10 @@
 #     https://www.nipreps.org/community/licensing/
 #
 """Orchestrating the dMRI-preprocessing workflow."""
-from bids.layout.layout import BIDSLayout
-from bids.layout.models import BIDSFile
 from pathlib import Path
-from nipype.pipeline import engine as pe
-from nipype.interfaces import utility as niu
-from nipype.pipeline.engine import workflows
 
+from nipype.pipeline import engine as pe
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
-from dwiprep.interfaces.dds import DerivativesDataSink
-from dwiprep.workflows.coreg.pipelines import apply_transform
-from dwiprep.workflows.dmri.pipelines import derivatives, epi_ref
 
 
 def init_dwi_preproc_wf(
@@ -100,28 +93,23 @@ def init_dwi_preproc_wf(
 
     """
     from niworkflows.interfaces.nibabel import ApplyMask
-    from dmriprep.utils.misc import sub_prefix as _prefix
+
+    from dwiprep.workflows.coreg.pipelines import (
+        init_apply_transform,
+        init_epireg_wf,
+    )
     from dwiprep.workflows.dmri.pipelines import (
-        init_conversion_wf,
-        init_nii_conversion_wf,
-        init_epi_ref_wf,
-        init_phasediff_wf,
         add_fieldmaps_to_wf,
+        init_conversion_wf,
+        init_epi_ref_wf,
+        init_nii_conversion_wf,
+        init_phasediff_wf,
         init_preprocess_wf,
         init_tensor_wf,
-    )
-    from dwiprep.workflows.coreg.pipelines import (
-        init_epireg_wf,
-        init_apply_transform,
     )
     from dwiprep.workflows.dmri.pipelines.derivatives import (
         init_derivatives_wf,
     )
-
-    # from dmriprep.workflows.dwi.outputs import (
-    #     init_dwi_derivatives_wf,
-    #     init_reportlets_wf,
-    # )
 
     dwi_file = Path(dwi_file)
     output_dir = Path(output_dir)

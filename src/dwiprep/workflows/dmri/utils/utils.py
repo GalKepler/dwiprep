@@ -104,7 +104,7 @@ OUTPUTS = {
         "dwi",
         "space-orig_desc-preproc_dwi.bval",
     ],
-    "native_preproc_epi_ref_file": [
+    "native_preproc_epi_ref_nii": [
         "dmriprep",
         "dwi",
         "space-orig_desc-preproc_epiref.nii.gz",

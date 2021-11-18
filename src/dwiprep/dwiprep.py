@@ -1,17 +1,15 @@
 """Main module."""
-from pathlib import Path
 import os
+from pathlib import Path
+from typing import Any, Iterable, Union
+
 import nipype.pipeline.engine as pe
 from bids import BIDSLayout
-from typing import Union, Any, Iterable
+from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
 from dwiprep.workflows.dmri.dmriprep import DmriPrep
-
-from smriprep.workflows.anatomical import init_anat_preproc_wf
-from dwiprep.workflows.dmri.utils.utils import (
-    OUTPUTS,
-)
+from dwiprep.workflows.dmri.utils.utils import OUTPUTS
 
 
 class DmriPrepManager:
@@ -55,7 +53,6 @@ class DmriPrepManager:
             participant_label,
             bids_validate,
         )
-        self.participant_labels = self.bids_query.participant_labels
         self.smriprep_kwargs = smriprep_kwargs
         self.destination = destination
         self.fs_subjects_dir = fs_subjects_dir or os.environ.get(
@@ -377,3 +374,15 @@ class DmriPrepManager:
         if len(output_dict) == 1:
             return output_dict.get(subject_id)
         return output_dict
+
+    @property
+    def participant_labels(self) -> list:
+        """
+        Return available subjects from *self.layout* or given list of subjects.
+
+        Returns
+        -------
+        list
+            A list of subjects' identifiers available in *self.layout*
+        """
+        return self.bids_query.participant_labels
