@@ -1,21 +1,20 @@
+import warnings
 from pathlib import Path
 from typing import Tuple
 
+import nipype.interfaces.utility as niu
 import nipype.pipeline.engine as pe
 
+from dwiprep.interfaces.mrconvert import MAP_KWARGS_TO_SUFFIXES
 from dwiprep.utils.bids_query.bids_query import BidsQuery
-from dwiprep.utils.inputs import INPUTNODE
 from dwiprep.utils.bids_query.utils import get_fieldmaps
-from dwiprep.interfaces.mrconvert import (
-    MAP_KWARGS_TO_SUFFIXES,
-)
+from dwiprep.utils.inputs import INPUT_FIELDS, INPUTNODE
+from dwiprep.workflows.dmri.base import init_dwi_preproc_wf
 from dwiprep.workflows.dmri.utils.messages import MISSING_ENTITY
 from dwiprep.workflows.dmri.utils.utils import (
     MANDATORY_ENTITIES,
     RECOMMENDED_ENTITIES,
 )
-from dwiprep.workflows.dmri.base import init_dwi_preproc_wf
-import warnings
 
 
 class DmriPrep:
@@ -112,6 +111,11 @@ class DmriPrep:
                     + "\nWe highly encourage using this entities for preprocessing."
                 )
 
+    def init_input_node(self):
+        return pe.Node(
+            niu.IdentityInterface(fields=INPUT_FIELDS), name="inputnode"
+        )
+
     def data_to_input_node(self, run_data: str) -> pe.Node:
         """
         Generate a run-specific input node.
@@ -128,7 +132,7 @@ class DmriPrep:
         pe.Node
             An input node.
         """
-        inputnode = self.INPUTNODE
+        inputnode = self.init_input_node()
         inputnode.inputs.output_dir = self.destination
         dwi_nifti, dwi_json, dwi_bvec, dwi_bval = [
             run_data.get(key) for key in ["nifti", "json", "bvec", "bval"]
@@ -145,7 +149,7 @@ class DmriPrep:
         # add fieldmaps
         fieldmaps = get_fieldmaps(str(dwi_nifti), self.bids_query.layout)
         for key, value in fieldmaps.items():
-            inputnode.set_input(key, value)
+            inputnode.set_input(key.lower(), value)
         return inputnode
 
     def init_workflow_per_dwi(self):

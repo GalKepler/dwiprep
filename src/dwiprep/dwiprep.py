@@ -8,6 +8,7 @@ from bids import BIDSLayout
 from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
+from dwiprep.workflows.dmri import dmriprep
 from dwiprep.workflows.dmri.dmriprep import DmriPrep
 from dwiprep.workflows.dmri.utils.utils import OUTPUTS
 
