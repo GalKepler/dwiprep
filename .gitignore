@@ -112,3 +112,4 @@ ENV/
 dmriprep_wf*
 crash-*
 *.pklz
+*trials*

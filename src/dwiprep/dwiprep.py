@@ -8,6 +8,7 @@ from bids import BIDSLayout
 from smriprep.workflows.anatomical import init_anat_preproc_wf
 
 from dwiprep.utils.bids_query.bids_query import BidsQuery
+from dwiprep.workflows import dmri
 from dwiprep.workflows.dmri import dmriprep
 from dwiprep.workflows.dmri.dmriprep import DmriPrep
 from dwiprep.workflows.dmri.utils.utils import OUTPUTS
@@ -167,7 +168,7 @@ class DmriPrepManager:
     def init_subject_wf(self, participant_label: str):
         name = f"single_subject_{participant_label}_wf"
         workflow = pe.Workflow(name=name)
-        return workflow
+        return workflow, name
 
     def preprocess_session(self, session_data: dict, participant_label: str):
         dmriprep = DmriPrep(
@@ -220,9 +221,10 @@ class DmriPrepManager:
     def preprocess_subjects(self):
         subjects_wf = {}
         for subject in self.participant_labels:
-            wf = self.init_subject_wf(subject)
-            wf.base_dir = self.work_dir
+            wf, name = self.init_subject_wf(subject)
+            wf_base_dir = f"{self.work_dir}/{name}"
             anatomical_wf = self.init_anatomical_wf(subject)
+            anatomical_wf.base_dir = wf_base_dir
             sessions = self.bids_query.get_sessions(subject)
             sessions_wfs = []
             sessions_data = (
@@ -240,16 +242,41 @@ class DmriPrepManager:
                     subject,
                 )
             for dmriprep_wf in sessions_wfs:
+                dmriprep_wf.base_dir = wf_base_dir
                 self.connect_anatomical_and_diffusion(
-                    wf, dmriprep_wf, anatomical_wf
+                    dmriprep_wf, anatomical_wf
                 )
-            subjects_wf[subject] = wf
+            subjects_wf[subject] = sessions_wfs
         return subjects_wf
 
     def run(self):
-        subjects_wf = self.preprocess_subjects()
-        for subject, workflow in subjects_wf.items():
-            workflow.run()
+        for subject in self.participant_labels:
+            # wf, name = self.init_subject_wf(subject)
+            # wf.base_dir = self.work_dir
+            # anatomical_wf = self.init_anatomical_wf(subject)
+            sessions = self.bids_query.get_sessions(subject)
+            sessions_data = (
+                [
+                    self.bids_query.collect_data(subject, session)
+                    for session in sessions
+                ]
+                if sessions
+                else [self.bids_query.collect_data(subject)]
+            )
+            for session_data in sessions_data:
+                wf, name = self.init_subject_wf(subject)
+                wf.base_dir = self.work_dir
+                anatomical_wf = self.init_anatomical_wf(subject)
+                session_wf = self.preprocess_session(
+                    session_data,
+                    subject,
+                )
+                for dmriprep_wf in session_wf:
+                    self.connect_anatomical_and_diffusion(
+                        wf, dmriprep_wf, anatomical_wf
+                    )
+                    wf.write_graph(graph2use="colored")
+                    wf.run()
 
     def generate_fs_outputs(
         self, main_dir: str, subject_id: str, output_id: str
