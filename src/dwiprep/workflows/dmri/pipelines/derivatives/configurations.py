@@ -72,5 +72,9 @@ T1_to_EPI_AFF_KWARGS = dict(
 )
 T1_to_EPI_AFF_KWARGS["from"] = "T1w"
 
-NATIVE_TENSOR_KWARGS = dict(datatype="tensor", space="orig", compress=True)
-COREG_TENSOR_KWARGS = dict(datatype="tensor", space="anat", compress=True)
+NATIVE_TENSOR_KWARGS = dict(
+    datatype="dwi", suffix="epiref", space="orig", compress=True
+)
+COREG_TENSOR_KWARGS = dict(
+    datatype="dwi", suffix="epiref", space="anat", compress=True
+)
