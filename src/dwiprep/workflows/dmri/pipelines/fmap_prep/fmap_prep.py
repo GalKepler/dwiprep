@@ -70,8 +70,7 @@ def add_fieldmaps_to_wf(
     """
 
     fmap_ap, fmap_pa = [
-        getattr(inputnode.inputs, key, None)
-        for key in ["fmap_fwd", "fmap_rev"]
+        getattr(inputnode.inputs, key, None) for key in ["fmap_ap", "fmap_pa"]
     ]
     if fmap_ap and fmap_pa:
         connection = [
