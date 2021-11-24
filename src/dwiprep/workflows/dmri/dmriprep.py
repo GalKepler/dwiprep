@@ -149,7 +149,8 @@ class DmriPrep:
         # add fieldmaps
         fieldmaps = get_fieldmaps(str(dwi_nifti), self.bids_query.layout)
         for key, value in fieldmaps.items():
-            inputnode.set_input(key.lower(), value)
+            valid_key = key.lower().replace("rev", "pa").replace("fwd", "ap")
+            inputnode.set_input(valid_key, value)
         return inputnode
 
     def init_workflow_per_dwi(self):

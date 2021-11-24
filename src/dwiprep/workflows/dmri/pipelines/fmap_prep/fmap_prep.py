@@ -1,14 +1,15 @@
 import nipype.pipeline.engine as pe
-from dwiprep.workflows.dmri.pipelines.fmap_prep.nodes import (
-    INPUT_NODE,
-    OUTPUT_NODE,
-    MERGE_NODE,
-    MRCAT_NODE,
-)
+
 from dwiprep.workflows.dmri.pipelines.fmap_prep.edges import (
     INPUT_TO_MERGE_EDGES,
     MERGE_TO_MRCAT_EDGES,
     MRCAT_TO_OUTPUT_EDGES,
+)
+from dwiprep.workflows.dmri.pipelines.fmap_prep.nodes import (
+    INPUT_NODE,
+    MERGE_NODE,
+    MRCAT_NODE,
+    OUTPUT_NODE,
 )
 
 PHASEDIFF = [
@@ -69,7 +70,8 @@ def add_fieldmaps_to_wf(
     """
 
     fmap_ap, fmap_pa = [
-        getattr(inputnode.inputs, key, None) for key in ["fmap_ap", "fmap_pa"]
+        getattr(inputnode.inputs, key, None)
+        for key in ["fmap_fwd", "fmap_rev"]
     ]
     if fmap_ap and fmap_pa:
         connection = [
