@@ -22,6 +22,8 @@ MIF_OUTPUTNODE_FIELDS = [
 NII_INPUTNODE_FIELDS = [
     # DWI
     "dwi_file",
+    # Coreg DWI
+    "coreg_dwi"
     # fieldmap
     "phasediff",
     # SBRef
@@ -32,6 +34,10 @@ NII_OUTPUTNODE_FIELDS = [
     "dwi_bvec",
     "dwi_bval",
     "dwi_json",
+    "coreg_dwi_file",
+    "coreg_dwi_bvec",
+    "coreg_dwi_bval",
+    "coreg_dwi_json",
     "phasediff_file",
     "phasediff_json",
     "epi_ref_file",
