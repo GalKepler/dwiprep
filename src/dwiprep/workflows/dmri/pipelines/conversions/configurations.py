@@ -23,7 +23,7 @@ NII_INPUTNODE_FIELDS = [
     # DWI
     "dwi_file",
     # Coreg DWI
-    "coreg_dwi"
+    "coreg_dwi",
     # fieldmap
     "phasediff",
     # SBRef

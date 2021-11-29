@@ -2,10 +2,8 @@
 Nodes' configurations for *apply_transforms* pipelines.
 """
 import nipype.pipeline.engine as pe
-from nipype.interfaces import fsl
 from nipype.interfaces import mrtrix3 as mrt
 from nipype.interfaces import utility as niu
-from nipype.interfaces.mrtrix.preprocess import MRTransform
 
 from dwiprep.workflows.coreg.pipelines.apply_transform.configurations import (
     APPLY_XFM_KWARGS,
@@ -29,10 +27,10 @@ TRANSFORM_FSL_AFF_TO_MRTRIX = pe.Node(
     mrt.TransformFSLConvert(**TRANSFORM_AFF_KWARGS), name="transformconvert"
 )
 APPLY_XFM_TENSOR_NODE = pe.MapNode(
-    MRTransform(**APPLY_XFM_KWARGS),
+    mrt.MRTransform(**APPLY_XFM_KWARGS),
     iterfield=["in_files"],
     name="mrtransform_tensor",
 )
 APPLY_XFM_DWI_NODE = pe.Node(
-    MRTransform(**APPLY_XFM_KWARGS), name="apply_xfm_dwi"
+    mrt.MRTransform(**APPLY_XFM_KWARGS), name="apply_xfm_dwi"
 )

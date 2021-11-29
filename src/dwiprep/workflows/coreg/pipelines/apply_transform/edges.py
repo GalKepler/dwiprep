@@ -2,11 +2,11 @@
 Edges' configurations for *apply_transforms* pipelines.
 """
 INPUT_TO_TENSOR_XFM_EDGES = [
-    ("tensor_metrics", "in_file"),
+    ("tensor_metrics", "in_files"),
     ("t1w_brain", "reference_image"),
 ]
 INPUT_TO_DWI_XFM_EDGES = [
-    ("dwi_file", "in_file"),
+    ("dwi_file", "in_files"),
     ("t1w_brain", "reference_image"),
 ]
 INPUT_TO_TRANSFORM_CONVERT_EDGES = [

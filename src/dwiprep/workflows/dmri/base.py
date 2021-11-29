@@ -26,6 +26,8 @@ from pathlib import Path
 from nipype.pipeline import engine as pe
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
+from dwiprep.workflows.coreg.pipelines.apply_transform.nodes import OUTPUT_NODE
+
 
 def init_dwi_preproc_wf(
     dwi_file,
@@ -337,9 +339,14 @@ def init_dwi_preproc_wf(
     workflow.connect(
         [
             (
+                preprocess_wf,
+                apply_transform_wf,
+                [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            ),
+            (
                 nii_conversion_wf,
                 apply_transform_wf,
-                [("outputnode.dwi_file", "inputnode.dwi_file")],
+                [("outputnode.epi_ref_file", "inputnode.epiref")],
             ),
             (
                 epi_reg_wf,
@@ -362,18 +369,41 @@ def init_dwi_preproc_wf(
         [
             (
                 apply_transform_wf,
+                nii_conversion_wf,
+                [("outputnode.dwi_file", "inputnode.coreg_dwi")],
+            ),
+            (
+                nii_conversion_wf,
+                derivatives_wf,
+                [
+                    (
+                        "outputnode.coreg_dwi_file",
+                        "inputnode.coreg_dwi_preproc_file",
+                    ),
+                    (
+                        "outputnode.coreg_dwi_bvec",
+                        "inputnode.coreg_dwi_preproc_bvec",
+                    ),
+                    (
+                        "outputnode.coreg_dwi_bval",
+                        "inputnode.coreg_dwi_preproc_bval",
+                    ),
+                    (
+                        "outputnode.coreg_dwi_json",
+                        "inputnode.coreg_dwi_preproc_json",
+                    ),
+                ],
+            ),
+            (
+                apply_transform_wf,
                 derivatives_wf,
                 [
                     (
                         "outputnode.tensor_metrics",
                         "inputnode.coreg_tensor_metrics",
                     ),
-                    (
-                        "outputnode.dwi_file",
-                        "inputnode.coreg_dwi_preproc_file",
-                    ),
                 ],
-            )
+            ),
         ]
     )
     return workflow
