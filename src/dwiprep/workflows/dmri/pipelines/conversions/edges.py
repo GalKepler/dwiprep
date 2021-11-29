@@ -27,6 +27,9 @@ MIF_FMAP_PA_CONVERSION_TO_OUTPUT_EDGES = [("out_file", "fmap_pa")]
 NII_INPUT_TO_PREPROC_DWI_CONVERSION_EDGES = [
     ("dwi_file", "in_file"),
 ]
+NII_INPUT_TO_COREG_DWI_CONVERSION_EDGES = [
+    ("coreg_dwi", "in_file"),
+]
 
 NII_INPUT_TO_PREPROC_SBREF_CONVERSION_EDGES = [
     ("epi_ref", "in_file"),
@@ -38,6 +41,12 @@ NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES = [
     ("out_bvec", "dwi_bvec"),
     ("out_bval", "dwi_bval"),
     ("json_export", "dwi_json"),
+]
+NII_COREG_DWI_CONVERSION_TO_OUTPUT_EDGES = [
+    ("out_file", "coreg_dwi_file"),
+    ("out_bvec", "coreg_dwi_bvec"),
+    ("out_bval", "coreg_dwi_bval"),
+    ("json_export", "coreg_dwi_json"),
 ]
 NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES = [
     ("out_file", "epi_ref_file"),

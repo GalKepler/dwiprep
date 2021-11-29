@@ -23,11 +23,17 @@ INPUT_TO_NATIVE_DWI_DDS_EDGES = [
 NATIVE_DWI_LIST_TO_DDS_EDGES = [("out", "in_file")]
 
 #: DWI - coreg
+INPUT_TO_COREG_DWI_LIST_EDGES = [
+    ("coreg_dwi_preproc_file", "in1"),
+    ("coreg_dwi_preproc_json", "in2"),
+    ("coreg_dwi_preproc_bvec", "in3"),
+    ("coreg_dwi_preproc_bval", "in4"),
+]
 INPUT_TO_COREG_DWI_DDS_EDGES = [
-    ("coreg_dwi_preproc_file", "in_file"),
     ("source_file", "source_file"),
     ("base_directory", "base_directory"),
 ]
+COREG_DWI_LIST_TO_DDS_EDGES = [("out", "in_file")]
 
 #: EPI reference - native
 INPUT_TO_NATIVE_SBREF_LIST_EDGES = [

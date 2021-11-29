@@ -26,6 +26,8 @@ from pathlib import Path
 from nipype.pipeline import engine as pe
 from niworkflows.engine.workflows import LiterateWorkflow as Workflow
 
+from dwiprep.workflows.coreg.pipelines.apply_transform.nodes import OUTPUT_NODE
+
 
 def init_dwi_preproc_wf(
     dwi_file,
@@ -106,6 +108,9 @@ def init_dwi_preproc_wf(
         init_phasediff_wf,
         init_preprocess_wf,
         init_tensor_wf,
+    )
+    from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
+        NII_COREG_DWI_CONVERSION_NODE,
     )
     from dwiprep.workflows.dmri.pipelines.derivatives import (
         init_derivatives_wf,
@@ -337,9 +342,14 @@ def init_dwi_preproc_wf(
     workflow.connect(
         [
             (
-                nii_conversion_wf,
+                preprocess_wf,
                 apply_transform_wf,
-                [("outputnode.dwi_file", "inputnode.dwi_file")],
+                [("outputnode.dwi_preproc", "inputnode.dwi_file")],
+            ),
+            (
+                preproc_epi_ref_wf,
+                apply_transform_wf,
+                [("outputnode.epi_ref_file", "inputnode.epiref")],
             ),
             (
                 epi_reg_wf,
@@ -356,10 +366,11 @@ def init_dwi_preproc_wf(
                 apply_transform_wf,
                 [("outputnode.metrics", "inputnode.tensor_metrics")],
             ),
-        ]
-    )
-    workflow.connect(
-        [
+            (
+                apply_transform_wf,
+                NII_COREG_DWI_CONVERSION_NODE,
+                [("outputnode.dwi_file", "in_file")],
+            ),
             (
                 apply_transform_wf,
                 derivatives_wf,
@@ -368,12 +379,34 @@ def init_dwi_preproc_wf(
                         "outputnode.tensor_metrics",
                         "inputnode.coreg_tensor_metrics",
                     ),
+                ],
+            ),
+        ]
+    )
+    workflow.connect(
+        [
+            (
+                NII_COREG_DWI_CONVERSION_NODE,
+                derivatives_wf,
+                [
                     (
-                        "outputnode.dwi_file",
+                        "out_file",
                         "inputnode.coreg_dwi_preproc_file",
                     ),
+                    (
+                        "out_bvec",
+                        "inputnode.coreg_dwi_preproc_bvec",
+                    ),
+                    (
+                        "out_bval",
+                        "inputnode.coreg_dwi_preproc_bval",
+                    ),
+                    (
+                        "json_export",
+                        "inputnode.coreg_dwi_preproc_json",
+                    ),
                 ],
-            )
+            ),
         ]
     )
     return workflow

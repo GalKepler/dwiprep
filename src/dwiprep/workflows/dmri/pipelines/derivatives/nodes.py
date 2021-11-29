@@ -62,9 +62,14 @@ NATIVE_DWI_DDS_NODE = pe.MapNode(
     name="ds_native_dwi",
     iterfield=["in_file"],
 )
-COREG_DWI_DDS_NODE = pe.Node(
+
+COREG_DWI_LIST_NODE = pe.Node(
+    niu.Merge(numinputs=4), name="list_coreg_dwi_inputs"
+)
+COREG_DWI_DDS_NODE = pe.MapNode(
     DerivativesDataSink(**COREG_DWI_PREPROC_KWARGS),
     name="ds_coreg_dwi",
+    iterfield=["in_file"],
 )
 
 #: EPI reference

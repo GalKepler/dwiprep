@@ -37,3 +37,10 @@ NII_OUTPUTNODE_FIELDS = [
     "epi_ref_file",
     "epi_ref_json",
 ]
+COREG_INPUTNODE_FIELDS = ["coreg_dwi"]
+COREG_OUTNODE_FIELDS = [
+    "coreg_dwi_file",
+    "coreg_dwi_bvec",
+    "coreg_dwi_bval",
+    "coreg_dwi_json",
+]
