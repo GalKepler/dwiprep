@@ -11,4 +11,5 @@ INPUT_NODE_FIELDS = [
 ]
 OUTPUT_NODE_FIELDS = ["tensor_metrics", "dwi_file"]
 TRANSFORM_AFF_KWARGS = dict(flirt_import=True)
-APPLY_XFM_KWARGS = dict()
+TENSOR_APPLY_XFM_KWARGS = dict(apply_xfm=True)
+DWI_APPLY_XFM_KWARGS = dict()

@@ -6,6 +6,8 @@ from nipype.interfaces import mrtrix3 as mrt
 from nipype.interfaces import utility as niu
 
 from dwiprep.workflows.dmri.pipelines.conversions.configurations import (
+    COREG_INPUTNODE_FIELDS,
+    COREG_OUTNODE_FIELDS,
     MIF_INPUTNODE_FIELDS,
     MIF_OUTPUTNODE_FIELDS,
     NII_INPUTNODE_FIELDS,
@@ -35,6 +37,13 @@ NII_OUTPUT_NODE = pe.Node(
     niu.IdentityInterface(fields=NII_OUTPUTNODE_FIELDS),
     name="outputnode",
 )
+COREG_INPUT_NODE = pe.Node(
+    niu.IdentityInterface(fields=COREG_INPUTNODE_FIELDS), name="inputnode"
+)
+COREG_OUTPUT_NODE = pe.Node(
+    niu.IdentityInterface(fields=COREG_OUTNODE_FIELDS), name="outnode"
+)
+
 NII_PREPROC_DWI_CONVERSION_NODE = pe.Node(
     mrt.MRConvert(
         out_file="dwi.nii.gz",

@@ -164,10 +164,10 @@ class DmriPrep:
                 self.work_dir,
             )
             dmriprep_wf.base_dir = self.work_dir
-            # for node in dmriprep_wf.list_node_names():
-            #     if node.split(".")[-1].startswith("ds_"):
-            #         dmriprep_wf.get_node(
-            #             node
-            #         ).interface.out_path_base = "dmriprep"
+            for node in dmriprep_wf.list_node_names():
+                if node.split(".")[-1].startswith("ds_"):
+                    dmriprep_wf.get_node(
+                        node
+                    ).interface.out_path_base = "dmriprep"
             dmriprep_wfs.append(dmriprep_wf)
         return dmriprep_wfs

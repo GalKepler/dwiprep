@@ -109,6 +109,9 @@ def init_dwi_preproc_wf(
         init_preprocess_wf,
         init_tensor_wf,
     )
+    from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
+        NII_COREG_DWI_CONVERSION_NODE,
+    )
     from dwiprep.workflows.dmri.pipelines.derivatives import (
         init_derivatives_wf,
     )
@@ -344,7 +347,7 @@ def init_dwi_preproc_wf(
                 [("outputnode.dwi_preproc", "inputnode.dwi_file")],
             ),
             (
-                nii_conversion_wf,
+                preproc_epi_ref_wf,
                 apply_transform_wf,
                 [("outputnode.epi_ref_file", "inputnode.epiref")],
             ),
@@ -363,36 +366,10 @@ def init_dwi_preproc_wf(
                 apply_transform_wf,
                 [("outputnode.metrics", "inputnode.tensor_metrics")],
             ),
-        ]
-    )
-    workflow.connect(
-        [
             (
                 apply_transform_wf,
-                nii_conversion_wf,
-                [("outputnode.dwi_file", "inputnode.coreg_dwi")],
-            ),
-            (
-                nii_conversion_wf,
-                derivatives_wf,
-                [
-                    (
-                        "outputnode.coreg_dwi_file",
-                        "inputnode.coreg_dwi_preproc_file",
-                    ),
-                    (
-                        "outputnode.coreg_dwi_bvec",
-                        "inputnode.coreg_dwi_preproc_bvec",
-                    ),
-                    (
-                        "outputnode.coreg_dwi_bval",
-                        "inputnode.coreg_dwi_preproc_bval",
-                    ),
-                    (
-                        "outputnode.coreg_dwi_json",
-                        "inputnode.coreg_dwi_preproc_json",
-                    ),
-                ],
+                NII_COREG_DWI_CONVERSION_NODE,
+                [("outputnode.dwi_file", "in_file")],
             ),
             (
                 apply_transform_wf,
@@ -401,6 +378,32 @@ def init_dwi_preproc_wf(
                     (
                         "outputnode.tensor_metrics",
                         "inputnode.coreg_tensor_metrics",
+                    ),
+                ],
+            ),
+        ]
+    )
+    workflow.connect(
+        [
+            (
+                NII_COREG_DWI_CONVERSION_NODE,
+                derivatives_wf,
+                [
+                    (
+                        "out_file",
+                        "inputnode.coreg_dwi_preproc_file",
+                    ),
+                    (
+                        "out_bvec",
+                        "inputnode.coreg_dwi_preproc_bvec",
+                    ),
+                    (
+                        "out_bval",
+                        "inputnode.coreg_dwi_preproc_bval",
+                    ),
+                    (
+                        "json_export",
+                        "inputnode.coreg_dwi_preproc_json",
                     ),
                 ],
             ),

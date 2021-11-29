@@ -9,7 +9,6 @@ from dwiprep.workflows.coreg.pipelines.apply_transform.edges import (
     INPUT_TO_TRANSFORM_CONVERT_EDGES,
     TENSOR_XFM_TO_OUTPUT_EDGES,
     TRANSFORM_CONVERT_TO_DWI_XFM_EDGES,
-    TRANSFORM_CONVERT_TO_TENSOR_XFM_EDGES,
 )
 from dwiprep.workflows.coreg.pipelines.apply_transform.nodes import (
     APPLY_XFM_DWI_NODE,
@@ -26,11 +25,6 @@ APPLY_TRANSFORMS = [
         INPUT_TO_TRANSFORM_CONVERT_EDGES,
     ),
     (INPUT_NODE, APPLY_XFM_TENSOR_NODE, INPUT_TO_TENSOR_XFM_EDGES),
-    (
-        TRANSFORM_FSL_AFF_TO_MRTRIX,
-        APPLY_XFM_TENSOR_NODE,
-        TRANSFORM_CONVERT_TO_TENSOR_XFM_EDGES,
-    ),
     (INPUT_NODE, APPLY_XFM_DWI_NODE, INPUT_TO_DWI_XFM_EDGES),
     (
         TRANSFORM_FSL_AFF_TO_MRTRIX,

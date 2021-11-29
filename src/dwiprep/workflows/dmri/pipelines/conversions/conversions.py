@@ -18,6 +18,8 @@ from dwiprep.workflows.dmri.pipelines.conversions.edges import (
     NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES,
 )
 from dwiprep.workflows.dmri.pipelines.conversions.nodes import (
+    COREG_INPUT_NODE,
+    COREG_OUTPUT_NODE,
     MIF_DWI_CONVERSION_NODE,
     MIF_FMAP_AP_CONVERSION_NODE,
     MIF_FMAP_PA_CONVERSION_NODE,
@@ -79,11 +81,6 @@ NII_CONVERSION = [
     ),
     (
         NII_INPUT_NODE,
-        NII_COREG_DWI_CONVERSION_NODE,
-        NII_INPUT_TO_COREG_DWI_CONVERSION_EDGES,
-    ),
-    (
-        NII_INPUT_NODE,
         NII_PHASEDIFF_CONVERSION_NODE,
         NII_INPUT_TO_PHASEDIFF_CONVERSION_EDGES,
     ),
@@ -98,11 +95,6 @@ NII_CONVERSION = [
         NII_PREPROC_DWI_CONVERSION_TO_OUTPUT_EDGES,
     ),
     (
-        NII_COREG_DWI_CONVERSION_NODE,
-        NII_OUTPUT_NODE,
-        NII_COREG_DWI_CONVERSION_TO_OUTPUT_EDGES,
-    ),
-    (
         NII_PHASEDIFF_CONVERSION_NODE,
         NII_OUTPUT_NODE,
         NII_PHASEDIFF_CONVERSION_TO_OUTPUT_EDGES,
@@ -111,6 +103,19 @@ NII_CONVERSION = [
         NII_PREPROC_SBREF_CONVERSION_NODE,
         NII_OUTPUT_NODE,
         NII_PREPROC_SBREF_CONVERSION_TO_OUTPUT_EDGES,
+    ),
+]
+
+COREG_NII_CONVERSION = [
+    (
+        COREG_INPUT_NODE,
+        NII_COREG_DWI_CONVERSION_NODE,
+        NII_INPUT_TO_COREG_DWI_CONVERSION_EDGES,
+    ),
+    (
+        NII_COREG_DWI_CONVERSION_NODE,
+        NII_OUTPUT_NODE,
+        NII_COREG_DWI_CONVERSION_TO_OUTPUT_EDGES,
     ),
 ]
 
@@ -143,6 +148,25 @@ def init_conversion_wf(
 
 
 def init_nii_conversion_wf(name: str = "nii_conversion_wf") -> pe.Workflow:
+    """
+    Initiate a workflow to convert input files to NIfTI format for ease of use
+
+
+    Parameters
+    ----------
+    name : str, optional
+        Workflow's name, by default "nii_conversion_wf"
+
+    Returns
+    -------
+    pe.Workflow
+        A NIfTI conversion workflow
+    """
+    wf = pe.Workflow(name=name)
+    wf.connect(NII_CONVERSION)
+    return wf
+
+def init_coreg_conversion_wf(name: str = "coreg_conversion_wf") -> pe.Workflow:
     """
     Initiate a workflow to convert input files to NIfTI format for ease of use
 
