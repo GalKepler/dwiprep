@@ -1,8 +1,9 @@
-from bids import BIDSLayout
-from typing import Union
 from pathlib import Path
+from typing import Union
+
 import nipype.pipeline.engine as pe
-from nipype import Workflow, Function
+from bids import BIDSLayout
+from nipype import Function, Workflow
 
 MANDATORY_ENTITIES = ["dwi"]
 
@@ -87,57 +88,72 @@ OUTPUTS = {
     "native_preproc_dwi_nii": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_dwi.nii.gz",
+        "dir-*space-orig_desc-preproc_dwi.nii.gz",
     ],
     "native_preproc_dwi_json": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_dwi.json",
+        "*space-orig_desc-preproc_dwi.json",
     ],
     "native_preproc_dwi_bvec": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_dwi.bvec",
+        "*space-orig_desc-preproc_dwi.bvec",
     ],
     "native_preproc_dwi_bval": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_dwi.bval",
+        "*space-orig_desc-preproc_dwi.bval",
     ],
-    "native_preproc_epi_ref_nii": [
+    "native_preproc_epi_ref_file": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_epiref.nii.gz",
+        "*space-orig_desc-preproc_epiref.nii.gz",
     ],
     "native_preproc_epiref_json": [
         "dmriprep",
         "dwi",
-        "space-orig_desc-preproc_epiref.json",
+        "*space-orig_desc-preproc_epiref.json",
     ],
     "coreg_preproc_dwi_nii": [
         "dmriprep",
         "dwi",
-        "space-anat_desc-preproc_dwi.nii.gz",
+        "*space-anat_desc-preproc_dwi.nii.gz",
+    ],
+    "coreg_preproc_dwi_bvec": [
+        "dmriprep",
+        "dwi",
+        "*space-anat_desc-preproc_dwi.bvec",
+    ],
+    "coreg_preproc_dwi_bval": [
+        "dmriprep",
+        "dwi",
+        "*space-anat_desc-preproc_dwi.bval",
+    ],
+    "coreg_preproc_dwi_json": [
+        "dmriprep",
+        "dwi",
+        "*space-anat_desc-preproc_dwi.json",
     ],
     "coreg_preproc_epiref_nii": [
         "dmriprep",
         "dwi",
-        "space-anat_desc-preproc_epiref.nii.gz",
+        "*space-anat_desc-preproc_epiref.nii.gz",
     ],
     "native_to_anat_transform": [
         "dmriprep",
         "dwi",
-        "from-epiref_to-T1w_mode-image_xfm.txt",
+        "*from-epiref_to-T1w_mode-image_xfm.txt",
     ],
     "anat_to_native_transform": [
         "dmriprep",
         "dwi",
-        "from-epiref_to-T1w_mode-image_xfm.txt",
+        "*from-epiref_to-T1w_mode-image_xfm.txt",
     ],
     "phasediff_fmap_nii": [
         "dmriprep",
         "fmap",
-        "desc-phasediff_fieldmap.nii.gz",
+        "_desc-phasediff_fieldmap.nii.gz",
     ],
     "phasediff_fmap_json": [
         "dmriprep",
@@ -146,93 +162,93 @@ OUTPUTS = {
     ],
     "native_fa": [
         "dmriprep",
-        "tensor",
-        "space-orig_fa.nii.gz",
+        "dwi",
+        "*space-orig_desc-fa_epiref.nii.gz",
     ],
     "native_adc": [
         "dmriprep",
-        "tensor",
-        "space-orig_adc.nii.gz",
+        "dwi",
+        "*space-orig_desc-adc_epiref.nii.gz",
     ],
     "native_ad": [
         "dmriprep",
-        "tensor",
-        "space-orig_ad.nii.gz",
+        "dwi",
+        "*space-orig_desc-ad_epiref.nii.gz",
     ],
     "native_rd": [
         "dmriprep",
-        "tensor",
-        "space-orig_rd.nii.gz",
+        "dwi",
+        "*space-orig_desc-rd_epiref.nii.gz",
     ],
     "native_cl": [
         "dmriprep",
-        "tensor",
-        "space-orig_cl.nii.gz",
+        "dwi",
+        "*space-orig_desc-cl_epiref.nii.gz",
     ],
     "native_cp": [
         "dmriprep",
-        "tensor",
-        "space-orig_cp.nii.gz",
+        "dwi",
+        "*space-orig_desc-cp_epiref.nii.gz",
     ],
     "native_cs": [
         "dmriprep",
-        "tensor",
-        "space-orig_cs.nii.gz",
+        "dwi",
+        "*space-orig_desc-cs_epiref.nii.gz",
     ],
     "native_evec": [
         "dmriprep",
-        "tensor",
-        "space-orig_evec.nii.gz",
+        "dwi",
+        "*space-orig_desc-evec_epiref.nii.gz",
     ],
     "native_eval": [
         "dmriprep",
-        "tensor",
-        "space-orig_eval.nii.gz",
+        "dwi",
+        "*space-orig_desc-eval_epiref.nii.gz",
     ],
     "coreg_fa": [
         "dmriprep",
-        "tensor",
-        "space-anat_fa.nii.gz",
+        "dwi",
+        "*space-anat_desc-fa_epiref.nii.gz",
     ],
     "coreg_adc": [
         "dmriprep",
-        "tensor",
-        "space-anat_adc.nii.gz",
+        "dwi",
+        "*space-anat_desc-adc_epiref.nii.gz",
     ],
     "coreg_ad": [
         "dmriprep",
-        "tensor",
-        "space-anat_ad.nii.gz",
+        "dwi",
+        "*space-anat_desc-ad_epiref.nii.gz",
     ],
     "coreg_rd": [
         "dmriprep",
-        "tensor",
-        "space-anat_rd.nii.gz",
+        "dwi",
+        "*space-anat_desc-rd_epiref.nii.gz",
     ],
     "coreg_cl": [
         "dmriprep",
-        "tensor",
-        "space-anat_cl.nii.gz",
+        "dwi",
+        "*space-anat_desc-cl_epiref.nii.gz",
     ],
     "coreg_cp": [
         "dmriprep",
-        "tensor",
-        "space-anat_cp.nii.gz",
+        "dwi",
+        "*space-anat_desc-cp_epiref.nii.gz",
     ],
     "coreg_cs": [
         "dmriprep",
-        "tensor",
-        "space-anat_cs.nii.gz",
+        "dwi",
+        "*space-anat_desc-cs_epiref.nii.gz",
     ],
     "coreg_evec": [
         "dmriprep",
-        "tensor",
-        "space-anat_evec.nii.gz",
+        "dwi",
+        "*space-anat_desc-evec_epiref.nii.gz",
     ],
     "coreg_eval": [
         "dmriprep",
-        "tensor",
-        "space-anat_eval.nii.gz",
+        "dwi",
+        "*space-anat_desc-eval_epiref.nii.gz",
     ],
     # Freesurfer
     "freesurfer_T1": ["freesurfer", "mri", "T1.mgz"],
@@ -318,8 +334,9 @@ def build_output_path(
     bids_dir: str, destination: str, source: str, entities: dict = {}
 ):
     OUTPUT_PATTERNS = "sub-{subject}/[ses-{session}/][{datatype}/]sub-{subject}[_ses-{session}][_acq-{acquisition}][_dir-{direction}][_space-{space}][_desc-{description}]_{suffix}.{extension}"
-    from bids import BIDSLayout
     from pathlib import Path
+
+    from bids import BIDSLayout
 
     layout = BIDSLayout(bids_dir)
     base_entities = layout.parse_file_entities(source)
